@@ -24,7 +24,7 @@ function Dashboard({ user }) {
       <Card style={{ marginBottom: 24 }}>
         <div style={{ textAlign: 'center', padding: '40px 20px' }}>
           <Title level={2} style={{ color: '#52c41a', marginBottom: 16 }}>
-            🎉 Welcome to CRM-ERP System!
+            🎉 Welcome to DruvoBuilds!
           </Title>
           <Text style={{ fontSize: '16px', color: '#666' }}>
             You have successfully logged in as <strong>{user?.name}</strong>
