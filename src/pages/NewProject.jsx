@@ -28,13 +28,10 @@ const { Option } = Select;
 const NewProject = () => {
   const [currentStep, setCurrentStep] = useState(0);
   const [form] = Form.useForm();
-  const [towerForm] = Form.useForm();
   const [projectId, setProjectId] = useState(null);
   const [projectData, setProjectData] = useState(null);
   const [towerDetails, setTowerDetails] = useState([]);
   const [loading, setLoading] = useState(false);
-  const [isModalVisible, setIsModalVisible] = useState(false);
-  const [editingIndex, setEditingIndex] = useState(null);
   const navigate = useNavigate();
 
   const unitTypes = [
