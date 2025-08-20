@@ -1,11 +1,11 @@
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import { Layout, Menu, Button, Avatar, Space, Typography, Tag, Drawer } from 'antd';
-import { 
-  DashboardOutlined, 
-  ProjectOutlined, 
-  CheckSquareOutlined, 
-  BarChartOutlined, 
-  ClockCircleOutlined, 
+import {
+  DashboardOutlined,
+  ProjectOutlined,
+  CheckSquareOutlined,
+  BarChartOutlined,
+  ClockCircleOutlined,
   TeamOutlined,
   LogoutOutlined,
   UserOutlined,
@@ -19,8 +19,22 @@ const { Text } = Typography;
 const AppLayout = ({ children, user, onLogout }) => {
   const [collapsed, setCollapsed] = useState(false);
   const [mobileDrawerVisible, setMobileDrawerVisible] = useState(false);
+  const [isMobile, setIsMobile] = useState(window.innerWidth <= 992);
   const navigate = useNavigate();
   const location = useLocation();
+
+  useEffect(() => {
+    const handleResize = () => {
+      const mobile = window.innerWidth <= 992;
+      setIsMobile(mobile);
+      if (!mobile) {
+        setMobileDrawerVisible(false);
+      }
+    };
+
+    window.addEventListener('resize', handleResize);
+    return () => window.removeEventListener('resize', handleResize);
+  }, []);
 
   const menuItems = [
     {
@@ -78,45 +92,47 @@ const AppLayout = ({ children, user, onLogout }) => {
       selectedKeys={[location.pathname]}
       items={menuItems}
       onClick={handleMenuClick}
-      style={{ border: 'none' }}
+      style={{ border: 'none', height: 'calc(100vh - 64px)', overflow: 'hidden' }}
     />
   );
 
   return (
     <Layout style={{ minHeight: '100vh' }}>
       {/* Desktop Sidebar */}
-      <Sider
-        trigger={null}
-        collapsible
-        collapsed={collapsed}
-        breakpoint="lg"
-        collapsedWidth="80"
-        width={250}
-        style={{
-          overflow: 'auto',
-          height: '100vh',
-          position: 'fixed',
-          left: 0,
-          top: 0,
-          bottom: 0,
-          zIndex: 100,
-        }}
-        className="desktop-sidebar"
-      >
-        <div style={{
-          height: 64,
-          display: 'flex',
-          alignItems: 'center',
-          justifyContent: 'center',
-          color: 'white',
-          fontSize: collapsed ? '16px' : '18px',
-          fontWeight: 'bold',
-          borderBottom: '1px solid #434343'
-        }}>
-          {collapsed ? 'CRM' : 'CRM-ERP System'}
-        </div>
-        <SidebarContent />
-      </Sider>
+      {!isMobile && (
+        <Sider
+          trigger={null}
+          collapsible
+          collapsed={collapsed}
+          breakpoint="lg"
+          collapsedWidth="80"
+          width={250}
+          style={{
+            overflow: 'hidden',
+            height: '100vh',
+            position: 'fixed',
+            left: 0,
+            top: 0,
+            bottom: 0,
+            zIndex: 100,
+          }}
+          className="desktop-sidebar"
+        >
+          <div style={{
+            height: 64,
+            display: 'flex',
+            alignItems: 'center',
+            justifyContent: 'center',
+            color: 'white',
+            fontSize: collapsed ? '16px' : '18px',
+            fontWeight: 'bold',
+            borderBottom: '1px solid #434343'
+          }}>
+            {collapsed ? 'CRM' : 'CRM-ERP System'}
+          </div>
+          <SidebarContent />
+        </Sider>
+      )}
 
       {/* Mobile Drawer */}
       <Drawer
@@ -132,7 +148,7 @@ const AppLayout = ({ children, user, onLogout }) => {
         <SidebarContent />
       </Drawer>
 
-      <Layout style={{ marginLeft: window.innerWidth > 992 ? (collapsed ? 80 : 250) : 0 }}>
+      <Layout style={{ marginLeft: !isMobile ? (collapsed ? 80 : 250) : 0 }}>
         <Header style={{
           padding: '0 24px',
           background: '#fff',
@@ -149,7 +165,7 @@ const AppLayout = ({ children, user, onLogout }) => {
               type="text"
               icon={<MenuOutlined />}
               onClick={() => {
-                if (window.innerWidth <= 992) {
+                if (isMobile) {
                   setMobileDrawerVisible(true);
                 } else {
                   setCollapsed(!collapsed);
@@ -161,29 +177,31 @@ const AppLayout = ({ children, user, onLogout }) => {
               CRM-ERP Dashboard
             </Text>
           </div>
-          
+
           <Space>
             <Avatar icon={<UserOutlined />} />
-            <Space direction="vertical" size={0} style={{ display: window.innerWidth > 768 ? 'block' : 'none' }}>
-              <Text strong>{user?.name}</Text>
-              <Tag color={getRoleColor(user?.role)} size="small">
-                {user?.role?.toUpperCase()}
-              </Tag>
-            </Space>
-            <Button 
-              type="text" 
-              icon={<LogoutOutlined />} 
+            {!isMobile && (
+              <Space direction="vertical" size={0}>
+                <Text strong>{user?.name}</Text>
+                <Tag color={getRoleColor(user?.role)} size="small">
+                  {user?.role?.toUpperCase()}
+                </Tag>
+              </Space>
+            )}
+            <Button
+              type="text"
+              icon={<LogoutOutlined />}
               onClick={onLogout}
               danger
             >
-              {window.innerWidth > 768 ? 'Logout' : ''}
+              {!isMobile ? 'Logout' : ''}
             </Button>
           </Space>
         </Header>
 
         <Content style={{
-          margin: '24px',
-          padding: '24px',
+          margin: isMobile ? '16px' : '24px',
+          padding: isMobile ? '16px' : '24px',
           background: '#f0f2f5',
           minHeight: 'calc(100vh - 112px)',
           overflow: 'auto'
@@ -191,20 +209,6 @@ const AppLayout = ({ children, user, onLogout }) => {
           {children}
         </Content>
       </Layout>
-
-      <style jsx>{`
-        @media (max-width: 992px) {
-          .desktop-sidebar {
-            display: none !important;
-          }
-        }
-        
-        @media (min-width: 993px) {
-          .mobile-drawer {
-            display: none !important;
-          }
-        }
-      `}</style>
     </Layout>
   );
 };
