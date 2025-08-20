@@ -1,116 +1,204 @@
-import React from "react";
-import { Form, Input, Button, Card, Alert, Typography, Space, Divider } from "antd";
-import { useNavigate } from "react-router-dom";
-import { useAuth } from "../contexts/AuthContext";
-import { UserOutlined, LockOutlined } from "@ant-design/icons";
+import React, { useState } from 'react';
+import { Card, Form, Input, Button, Alert, Typography, Space, Divider } from 'antd';
+import { UserOutlined, LockOutlined } from '@ant-design/icons';
+import axios from 'axios';
+import { API_ENDPOINTS, APP_CONFIG } from '../config/config.js';
 
 const { Title, Text } = Typography;
 
-function LoginPage() {
-    const navigate = useNavigate();
-    const { login } = useAuth();
-    const [form] = Form.useForm();
-    const [loading, setLoading] = React.useState(false);
-    const [error, setError] = React.useState('');
+// Demo accounts for testing
+const DEMO_ACCOUNTS = [
+  { user_id: 'admin', password: 'admin123', name: 'Administrator', role: 'admin' },
+  { user_id: 'manager', password: 'manager123', name: 'Project Manager', role: 'manager' },
+  { user_id: 'executive', password: 'exec123', name: 'Executive', role: 'executive' }
+];
 
-    const onFinish = async (values) => {
-        setLoading(true);
-        setError('');
+function LoginPage({ onLogin }) {
+  const [form] = Form.useForm();
+  const [loading, setLoading] = useState(false);
+  const [error, setError] = useState('');
 
-        const result = await login(values.user_id, values.password);
+  const handleLogin = async (values) => {
+    try {
+      setLoading(true);
+      setError('');
 
-        if (result.success) {
-            navigate("/dashboard");
-        } else {
-            setError(result.error);
+      const { user_id, password } = values;
+
+      // First try API login
+      try {
+        const response = await axios.post(API_ENDPOINTS.LOGIN, {
+          user_id,
+          password
+        }, {
+          timeout: APP_CONFIG.TIMEOUT,
+          headers: APP_CONFIG.DEFAULT_HEADERS
+        });
+
+        if (response.data) {
+          const userData = response.data;
+          
+          // Create user object
+          const userObj = {
+            id: userData.user_id || user_id,
+            user_id: userData.user_id || user_id,
+            name: userData.name || user_id,
+            designation: userData.designation || 'User',
+            status: userData.Emp_Status || 'Active',
+            role: mapDesignationToRole(userData.designation) || 'user',
+          };
+
+          // Store in localStorage
+          localStorage.setItem(APP_CONFIG.STORAGE_KEYS.TOKEN, userData.token || `token_${Date.now()}`);
+          localStorage.setItem(APP_CONFIG.STORAGE_KEYS.USER, JSON.stringify(userObj));
+
+          // Call parent callback
+          onLogin(userObj);
+          return;
         }
+      } catch (apiError) {
+        console.warn('API login failed, trying demo accounts:', apiError.message);
+      }
 
-        setLoading(false);
-    };
+      // Fallback to demo accounts
+      const demoUser = DEMO_ACCOUNTS.find(
+        account => account.user_id === user_id && account.password === password
+      );
 
-    return (
-        <div style={{
-            height: "100vh",
-            display: "flex",
-            flexDirection: "column",
-            justifyContent: "center",
-            alignItems: "center",
-            background: "linear-gradient(135deg, #667eea 0%, #764ba2 100%)",
-            padding: "20px"
-        }}>
-            <Card 
-                style={{ 
-                    width: "100%", 
-                    maxWidth: 400, 
-                    borderRadius: 12,
-                    boxShadow: "0 10px 30px rgba(0,0,0,0.2)"
-                }}
-            >
-                <div style={{ textAlign: "center", marginBottom: 24 }}>
-                    <Title level={2} style={{ color: "#1890ff", marginBottom: 8 }}>
-                        CRM-ERP System
-                    </Title>
-                    <Text type="secondary">Sign in to your account</Text>
-                </div>
+      if (demoUser) {
+        const userObj = {
+          id: demoUser.user_id,
+          user_id: demoUser.user_id,
+          name: demoUser.name,
+          designation: demoUser.role,
+          status: 'Active',
+          role: demoUser.role,
+        };
 
-                {error && (
-                    <Alert 
-                        message={error} 
-                        type="error" 
-                        showIcon 
-                        style={{ marginBottom: 16 }}
-                    />
-                )}
+        // Store in localStorage
+        localStorage.setItem(APP_CONFIG.STORAGE_KEYS.TOKEN, `demo_token_${Date.now()}`);
+        localStorage.setItem(APP_CONFIG.STORAGE_KEYS.USER, JSON.stringify(userObj));
 
-                <Form 
-                    form={form}
-                    layout="vertical" 
-                    onFinish={onFinish}
-                    size="large"
-                >
-                    <Form.Item
-                        name="user_id"
-                        rules={[{ required: true, message: "Please enter user ID" }]}
-                    >
-                        <Input
-                            prefix={<UserOutlined />}
-                            placeholder="User ID"
-                        />
-                    </Form.Item>
-                    
-                    <Form.Item 
-                        name="password" 
-                        rules={[{ required: true, message: "Please enter password" }]}
-                    >
-                        <Input.Password 
-                            prefix={<LockOutlined />}
-                            placeholder="Password"
-                        />
-                    </Form.Item>
-                    
-                    <Form.Item>
-                        <Button 
-                            type="primary" 
-                            htmlType="submit" 
-                            block 
-                            loading={loading}
-                            style={{ height: 45 }}
-                        >
-                            {loading ? 'Signing In...' : 'Sign In'}
-                        </Button>
-                    </Form.Item>
-                </Form>
+        // Call parent callback
+        onLogin(userObj);
+      } else {
+        setError('Invalid credentials. Please check your user ID and password.');
+      }
 
-                <Divider>Demo Accounts</Divider>
-                
-                <Space direction="vertical" style={{ width: '100%' }} size="small">
-                    <div style={{ fontSize: '12px', color: '#666' }}>
-                        <strong>Example:</strong> User ID: 10002, Password: Pavan@1
-                    </div>
-                </Space>
-            </Card>
+    } catch (error) {
+      console.error('Login error:', error);
+      setError('Login failed. Please try again.');
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  // Helper function to map designation to role
+  const mapDesignationToRole = (designation) => {
+    const designationLower = designation?.toLowerCase() || '';
+    
+    if (designationLower.includes('admin')) return 'admin';
+    if (designationLower.includes('manager')) return 'manager';
+    if (designationLower.includes('executive')) return 'executive';
+    if (designationLower.includes('incharge')) return 'incharge';
+    
+    return 'user';
+  };
+
+  return (
+    <div style={{
+      minHeight: '100vh',
+      display: 'flex',
+      justifyContent: 'center',
+      alignItems: 'center',
+      background: 'linear-gradient(135deg, #667eea 0%, #764ba2 100%)',
+      padding: '20px'
+    }}>
+      <Card
+        style={{
+          width: '100%',
+          maxWidth: 400,
+          boxShadow: '0 4px 6px rgba(0, 0, 0, 0.1)'
+        }}
+      >
+        <div style={{ textAlign: 'center', marginBottom: 24 }}>
+          <Title level={2} style={{ color: '#1890ff', marginBottom: 8 }}>
+            CRM-ERP System
+          </Title>
+          <Text type="secondary">Please sign in to continue</Text>
         </div>
-    );
+
+        {error && (
+          <Alert
+            message={error}
+            type="error"
+            showIcon
+            style={{ marginBottom: 16 }}
+          />
+        )}
+
+        <Form
+          form={form}
+          name="login"
+          onFinish={handleLogin}
+          layout="vertical"
+          size="large"
+        >
+          <Form.Item
+            name="user_id"
+            label="User ID"
+            rules={[
+              { required: true, message: 'Please input your user ID!' }
+            ]}
+          >
+            <Input
+              prefix={<UserOutlined />}
+              placeholder="Enter your user ID"
+            />
+          </Form.Item>
+
+          <Form.Item
+            name="password"
+            label="Password"
+            rules={[
+              { required: true, message: 'Please input your password!' }
+            ]}
+          >
+            <Input.Password
+              prefix={<LockOutlined />}
+              placeholder="Enter your password"
+            />
+          </Form.Item>
+
+          <Form.Item>
+            <Button
+              type="primary"
+              htmlType="submit"
+              loading={loading}
+              block
+              style={{ height: 40 }}
+            >
+              {loading ? 'Signing in...' : 'Sign In'}
+            </Button>
+          </Form.Item>
+        </Form>
+
+        <Divider>Demo Accounts</Divider>
+        
+        <div style={{ fontSize: '12px', color: '#666' }}>
+          <Text strong>Test Credentials:</Text>
+          <div style={{ marginTop: 8 }}>
+            {DEMO_ACCOUNTS.map((account, index) => (
+              <div key={index} style={{ marginBottom: 4 }}>
+                <Text code>{account.user_id}</Text> / <Text code>{account.password}</Text>
+                <Text type="secondary" style={{ marginLeft: 8 }}>({account.role})</Text>
+              </div>
+            ))}
+          </div>
+        </div>
+      </Card>
+    </div>
+  );
 }
 
 export default LoginPage;
