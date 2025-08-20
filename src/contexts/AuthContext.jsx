@@ -1,5 +1,5 @@
 import React, { createContext, useContext, useState, useEffect } from 'react';
-import authService from '../services/auth.service';
+import authMethods from '../config/auth.config.js';
 
 const AuthContext = createContext();
 
@@ -53,7 +53,7 @@ export const AuthProvider = ({ children }) => {
       setLoading(true);
 
       // Call the real API
-      const result = await authService.login(user_id, password);
+      const result = await authMethods.login(user_id, password);
 
       if (result.success) {
         const userData = result.data;
@@ -108,7 +108,7 @@ export const AuthProvider = ({ children }) => {
 
   const logout = async () => {
     try {
-      await authService.logout();
+      await authMethods.logout();
     } catch (error) {
       console.error('Logout error:', error);
     } finally {

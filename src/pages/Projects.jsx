@@ -30,7 +30,7 @@ import {
   EnvironmentOutlined
 } from '@ant-design/icons';
 import { useAuth } from '../contexts/AuthContext';
-import projectService from '../services/project.service';
+import projectMethods from '../config/project.config.js';
 
 const { Title, Text } = Typography;
 const { TextArea } = Input;
@@ -112,7 +112,7 @@ function Projects() {
   const loadProjects = async () => {
     try {
       setLoading(true);
-      const result = await projectService.getProjects();
+      const result = await projectMethods.getProjects();
 
       if (result.success) {
         setProjects(result.data);
@@ -152,7 +152,7 @@ function Projects() {
 
   const handleDeleteProject = async (projectId) => {
     try {
-      const result = await projectService.deleteProject(projectId);
+      const result = await projectMethods.deleteProject(projectId);
       if (result.success) {
         setProjects(projects.filter(p => p.id !== projectId));
         message.success('Project deleted successfully');
@@ -188,7 +188,7 @@ function Projects() {
 
       if (editingProject) {
         // Update existing project
-        const result = await projectService.updateProject(editingProject.id, projectData);
+        const result = await projectMethods.updateProject(editingProject.id, projectData);
         if (result.success) {
           setProjects(projects.map(p =>
             p.id === editingProject.id
@@ -208,7 +208,7 @@ function Projects() {
           createdAt: new Date().toISOString().split('T')[0]
         };
 
-        const result = await projectService.createProject(newProjectData);
+        const result = await projectMethods.createProject(newProjectData);
         if (result.success) {
           const newProject = {
             id: result.data.id || Date.now(),

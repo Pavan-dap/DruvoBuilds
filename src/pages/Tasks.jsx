@@ -2,7 +2,7 @@ import React, { useState, useEffect } from "react";
 import { Card, Table, Button, Space, Typography, Tag, message, Spin } from "antd";
 import { PlusOutlined, EditOutlined, DeleteOutlined } from "@ant-design/icons";
 import { useAuth } from "../contexts/AuthContext";
-import taskService from "../services/task.service";
+import taskMethods from "../config/task.config.js";
 
 const { Title } = Typography;
 
@@ -21,7 +21,7 @@ function Tasks() {
     const loadTasks = async () => {
         try {
             setLoading(true);
-            const result = await taskService.getTasks();
+            const result = await taskMethods.getTasks();
 
             if (result.success) {
                 setTasks(result.data);

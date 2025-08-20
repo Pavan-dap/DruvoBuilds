@@ -2,7 +2,7 @@ import React, { useState, useEffect } from "react";
 import { Card, Row, Col, Statistic, Typography, Space, Tag, Spin } from "antd";
 import { UserOutlined, ProjectOutlined, CheckSquareOutlined, FileTextOutlined } from "@ant-design/icons";
 import { useAuth } from "../contexts/AuthContext";
-import dashboardService from "../services/dashboard.service";
+import dashboardMethods from "../config/dashboard.config.js";
 
 const { Title } = Typography;
 
@@ -23,7 +23,7 @@ function Dashboard() {
     const loadDashboardStats = async () => {
         try {
             setLoading(true);
-            const result = await dashboardService.getDashboardStats();
+            const result = await dashboardMethods.getDashboardStats();
 
             if (result.success) {
                 setDashboardStats(result.data);
