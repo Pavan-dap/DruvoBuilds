@@ -164,15 +164,38 @@ const NewProject = () => {
   };
 
   // Step 2: Save tower and floor details
-  const handleSaveTowerDetails = async () => {
-    if (towerDetails.length === 0) {
-      message.warning('Please add at least one tower detail');
-      return;
-    }
-
+  const handleTowerUnitsSubmit = async (values) => {
     setLoading(true);
     try {
-      await axios.post(API_PROJECT_DETAILS, towerDetails);
+      const towerPayload = [];
+
+      // Generate data for each tower and floor combination
+      const towerNames = generateTowerNames(projectData.Towers);
+
+      towerNames.forEach(towerName => {
+        for (let floor = 1; floor <= projectData.Floors; floor++) {
+          const units = values[`${towerName}_floor_${floor}_units`];
+          const unitType = values[`${towerName}_floor_${floor}_type`] || '3BHK';
+
+          if (units && units > 0) {
+            towerPayload.push({
+              Project_ID: projectId,
+              Towers: towerName,
+              Floors: `${floor}${floor === 1 ? 'st' : floor === 2 ? 'nd' : floor === 3 ? 'rd' : 'th'} Floor`,
+              Units: parseInt(units),
+              Units_Type: unitType
+            });
+          }
+        }
+      });
+
+      if (towerPayload.length === 0) {
+        message.warning('Please enter units for at least one floor');
+        return;
+      }
+
+      await axios.post(API_PROJECT_DETAILS, towerPayload);
+      setTowerDetails(towerPayload);
       message.success('Project details saved successfully!');
       next();
     } catch (error) {
