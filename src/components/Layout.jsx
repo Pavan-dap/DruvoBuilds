@@ -128,7 +128,7 @@ const AppLayout = ({ children, user, onLogout }) => {
             fontWeight: 'bold',
             borderBottom: '1px solid #434343'
           }}>
-            {collapsed ? 'CRM' : 'CRM-ERP System'}
+            {collapsed ? 'DB' : 'DruvoBuilds'}
           </div>
           <SidebarContent />
         </Sider>
@@ -176,7 +176,7 @@ const AppLayout = ({ children, user, onLogout }) => {
               style={{ marginRight: 16 }}
             />
             <Text strong style={{ fontSize: '16px', color: '#1890ff' }}>
-              CRM-ERP Dashboard
+              DruvoBuilds Dashboard
             </Text>
           </div>
 
