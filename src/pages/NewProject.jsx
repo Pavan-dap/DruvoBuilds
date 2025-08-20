@@ -103,15 +103,6 @@ const NewProject = () => {
     return names;
   };
 
-  // Generate floor options
-  const generateFloorOptions = (maxFloors) => {
-    const floors = [];
-    for (let i = 1; i <= maxFloors; i++) {
-      floors.push(`${i}${i === 1 ? 'st' : i === 2 ? 'nd' : i === 3 ? 'rd' : 'th'} Floor`);
-    }
-    return floors;
-  };
-
   // Step 2: Save tower and floor details
   const handleTowerUnitsSubmit = async (values) => {
     setLoading(true);
@@ -154,53 +145,6 @@ const NewProject = () => {
       setLoading(false);
     }
   };
-
-  // Table columns for tower details
-  const columns = [
-    {
-      title: 'Tower',
-      dataIndex: 'Towers',
-      key: 'towers',
-    },
-    {
-      title: 'Floor',
-      dataIndex: 'Floors',
-      key: 'floors',
-    },
-    {
-      title: 'Units',
-      dataIndex: 'Units',
-      key: 'units',
-    },
-    {
-      title: 'Unit Type',
-      dataIndex: 'Units_Type',
-      key: 'unitsType',
-    },
-    {
-      title: 'Actions',
-      key: 'actions',
-      render: (_, record, index) => (
-        <Space>
-          <Button
-            type="link"
-            icon={<EditOutlined />}
-            onClick={() => openTowerModal(index)}
-          >
-            Edit
-          </Button>
-          <Button
-            type="link"
-            danger
-            icon={<DeleteOutlined />}
-            onClick={() => deleteTowerDetail(index)}
-          >
-            Delete
-          </Button>
-        </Space>
-      ),
-    },
-  ];
 
   const renderStepContent = () => {
     switch (currentStep) {
