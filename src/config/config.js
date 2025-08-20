@@ -1,5 +1,5 @@
 // Environment configuration
-const API_BASE_URL = import.meta.env.VITE_API_BASE_URL || "http://127.0.0.1:8000/api";
+const API_BASE_URL = import.meta.env.VITE_API_BASE_URL || "http://192.168.29.35:8000/api";
 const IMG_URL_PATH = import.meta.env.VITE_IMG_URL_PATH || import.meta.env.VITE_API_BASE_URL;
 
 // API endpoints
