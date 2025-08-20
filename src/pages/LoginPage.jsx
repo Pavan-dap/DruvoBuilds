@@ -16,15 +16,15 @@ function LoginPage() {
     const onFinish = async (values) => {
         setLoading(true);
         setError('');
-        
-        const result = await login(values.username, values.password);
-        
+
+        const result = await login(values.user_id, values.password);
+
         if (result.success) {
             navigate("/dashboard");
         } else {
             setError(result.error);
         }
-        
+
         setLoading(false);
     };
 
@@ -68,13 +68,13 @@ function LoginPage() {
                     onFinish={onFinish}
                     size="large"
                 >
-                    <Form.Item 
-                        name="username" 
-                        rules={[{ required: true, message: "Please enter username" }]}
+                    <Form.Item
+                        name="user_id"
+                        rules={[{ required: true, message: "Please enter user ID" }]}
                     >
-                        <Input 
+                        <Input
                             prefix={<UserOutlined />}
-                            placeholder="Username"
+                            placeholder="User ID"
                         />
                     </Form.Item>
                     
@@ -105,10 +105,7 @@ function LoginPage() {
                 
                 <Space direction="vertical" style={{ width: '100%' }} size="small">
                     <div style={{ fontSize: '12px', color: '#666' }}>
-                        <strong>Admin:</strong> admin / admin123<br/>
-                        <strong>Manager:</strong> manager / manager123<br/>
-                        <strong>Executive:</strong> executive / exec123<br/>
-                        <strong>Incharge:</strong> incharge / incharge123
+                        <strong>Example:</strong> User ID: 10002, Password: Pavan@1
                     </div>
                 </Space>
             </Card>
