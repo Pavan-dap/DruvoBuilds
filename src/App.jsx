@@ -17,6 +17,7 @@ import {
   Typography,
   Badge,
   message,
+  Drawer,
 } from "antd";
 import {
   DashboardOutlined,
@@ -36,52 +37,22 @@ import Dashboard from "./pages/Dashboard";
 import Projects from "./pages/Projects";
 import Tasks from "./pages/Tasks";
 import Reports from "./pages/Reports";
+import GanttChart from "./pages/GanttChart";
 import LoginPage from "./pages/LoginPage";
 import UserProfile from "./components/UserProfile";
 import ProtectedRoute from "./components/ProtectedRoute";
 import { AuthProvider, useAuth } from "./contexts/AuthContext";
-// import GanttChart from "./pages/GanttChart";
-
-// import { DataProvider } from "./contexts/DataContext";
-// import { GlobalStateProvider } from "./contexts/GlobalStateContext";
-
-// import "./styles/App.css";
 
 const { Header, Content, Sider } = Layout;
 const { Title } = Typography;
 
 // --- Menu items ---
 const menuItems = [
-  {
-    key: "dashboard",
-    path: "/dashboard",
-    icon: <DashboardOutlined />,
-    label: "Dashboard",
-  },
-  {
-    key: "timeline",
-    path: "/timeline",
-    icon: <CalendarOutlined />,
-    label: "Timeline",
-  },
-  {
-    key: "projects",
-    path: "/projects",
-    icon: <ProjectOutlined />,
-    label: "Projects",
-  },
-  {
-    key: "tasks",
-    path: "/tasks",
-    icon: <CheckSquareOutlined />,
-    label: "Tasks",
-  },
-  {
-    key: "reports",
-    path: "/reports",
-    icon: <FileTextOutlined />,
-    label: "Reports",
-  },
+  { key: "dashboard", path: "/dashboard", icon: <DashboardOutlined />, label: "Dashboard" },
+  { key: "timeline", path: "/timeline", icon: <CalendarOutlined />, label: "Timeline" },
+  { key: "projects", path: "/projects", icon: <ProjectOutlined />, label: "Projects" },
+  { key: "tasks", path: "/tasks", icon: <CheckSquareOutlined />, label: "Tasks" },
+  { key: "reports", path: "/reports", icon: <FileTextOutlined />, label: "Reports" },
 ];
 
 function AppContent() {
@@ -91,13 +62,15 @@ function AppContent() {
 
   const [collapsed, setCollapsed] = useState(false);
   const [isMobile, setIsMobile] = useState(false);
+  const [drawerVisible, setDrawerVisible] = useState(false);
 
   // Redirect to login if not authenticated
   useEffect(() => {
-    if (!isAuthenticated && location.pathname !== '/login') {
-      navigate('/login');
+    if (!isAuthenticated && location.pathname !== "/login") {
+      navigate("/login");
     }
   }, [isAuthenticated, location.pathname, navigate]);
+
   const getActiveMenuKey = () => {
     const item = menuItems.find((i) => i.path === location.pathname);
     return item ? item.key : "dashboard";
@@ -106,7 +79,9 @@ function AppContent() {
   const checkMobile = useCallback(() => {
     const mobile = window.innerWidth < 768;
     setIsMobile(mobile);
-    if (mobile) setCollapsed(true);
+    if (mobile) {
+      setCollapsed(true);
+    }
   }, []);
 
   useEffect(() => {
@@ -117,200 +92,136 @@ function AppContent() {
 
   const handleLogout = () => {
     logout();
-    message.success('Logged out successfully');
-    navigate('/login');
+    message.success("Logged out successfully");
+    navigate("/login");
   };
+
   const userMenuItems = [
-    {
-      key: "profile",
-      icon: <UserOutlined />,
-      label: "Profile",
-      onClick: () => navigate('/profile'),
-    },
-    {
-      key: "settings",
-      icon: <SettingOutlined />,
-      label: "Settings",
-    },
+    { key: "profile", icon: <UserOutlined />, label: "Profile", onClick: () => navigate("/profile") },
+    { key: "settings", icon: <SettingOutlined />, label: "Settings" },
     { type: "divider" },
-    {
-      key: "logout",
-      icon: <LogoutOutlined />,
-      label: "Logout",
-      onClick: handleLogout,
-    },
+    { key: "logout", icon: <LogoutOutlined />, label: "Logout", onClick: handleLogout },
   ];
 
-  // Show login page if not authenticated
-  if (!isAuthenticated) {
-    return <LoginPage />;
-  }
-  return (
-    <Layout style={{ minHeight: "100vh" }}>
-      {/* Sidebar */}
-      <Sider
-        collapsible
-        collapsed={collapsed}
-        onCollapse={setCollapsed}
-        theme="light"
-        width={240}
-        collapsedWidth={isMobile ? 0 : 80}
+  // --- Shared menu content ---
+  const menuContent = (
+    <>
+      <div
         style={{
-          position: isMobile ? "fixed" : "relative",
-          zIndex: isMobile ? 1000 : "auto",
-          height: "100vh",
-          left: 0,
-          top: 0,
-          bottom: 0,
-          boxShadow: isMobile ? "2px 0 8px rgba(0,0,0,0.15)" : "none",
+          padding: "16px",
+          textAlign: "center",
+          borderBottom: "1px solid #f0f0f0",
+          background: "#fafafa",
         }}
       >
-        <div
+        <Title level={4} style={{ margin: 0, color: "#1890ff" }}>
+          {collapsed ? "CRM" : "CRM-ERP"}
+        </Title>
+      </div>
+      <Menu
+        mode="inline"
+        selectedKeys={[getActiveMenuKey()]}
+        items={menuItems.map((i) => ({
+          key: i.key,
+          icon: i.icon,
+          label: i.label,
+          onClick: () => {
+            navigate(i.path);
+            if (isMobile) setDrawerVisible(false); // auto-close drawer
+          },
+        }))}
+      />
+    </>
+  );
+
+  return (
+    <Layout style={{ minHeight: "100vh" }}>
+      {/* Desktop Sider */}
+      {!isMobile && (
+        <Sider
+          collapsible
+          collapsed={collapsed}
+          onCollapse={setCollapsed}
+          theme="light"
+          width={240}
+          collapsedWidth={80}
           style={{
-            padding: "16px",
-            textAlign: "center",
-            borderBottom: "1px solid #f0f0f0",
-            background: "#fafafa",
+            height: "100vh",
+            left: 0,
+            top: 0,
+            bottom: 0,
           }}
         >
-          <Title level={4} style={{ margin: 0, color: "#1890ff" }}>
-            {collapsed ? "CRM" : "CRM-ERP"}
-          </Title>
-        </div>
-        <Menu
-          mode="inline"
-          selectedKeys={[getActiveMenuKey()]}
-          items={menuItems.map((i) => ({
-            key: i.key,
-            icon: i.icon,
-            label: i.label,
-            onClick: () => {
-              navigate(i.path);
-              if (isMobile) setCollapsed(true);
-            },
-          }))}
-        />
-      </Sider>
+          {menuContent}
+        </Sider>
+      )}
 
-      {/* Main */}
+      {/* Mobile Drawer */}
+      {isMobile && (
+        <Drawer
+          placement="left"
+          closable={false}
+          open={drawerVisible}
+          onClose={() => setDrawerVisible(false)}
+          size="small"
+        >
+          {menuContent}
+        </Drawer>
+      )}
+
+      {/* Main Layout */}
       <Layout>
         <Header
           style={{
             background: "#fff",
-            padding: "0 24px",
+            padding: "0 16px",
             display: "flex",
             justifyContent: "space-between",
             alignItems: "center",
             boxShadow: "0 2px 8px rgba(0,0,0,0.1)",
             position: "fixed",
-            width: `calc(100% - ${isMobile ? 0 : collapsed ? 80 : 240}px)`,
+            width: `calc(100% - ${!isMobile ? (collapsed ? 80 : 240) : 0}px)`,
             right: 0,
             zIndex: 100,
             transition: "width 0.2s",
           }}
         >
-          <div style={{ 
-            display: "flex", 
-            alignItems: "center", 
-            gap: "16px",
-            flex: 1,
-            minWidth: 0
-          }}>
-            <Button
-              type="text"
-              icon={collapsed ? <MenuUnfoldOutlined /> : <MenuFoldOutlined />}
-              onClick={() => setCollapsed(!collapsed)}
-              style={{ 
-                display: isMobile ? "inline-flex" : "none",
-                alignItems: "center",
-                justifyContent: "center"
-              }}
-            />
+          <div style={{ display: "flex", alignItems: "center", gap: "16px", flex: 1, minWidth: 0 }}>
+            {/* Toggle Button */}
+            {isMobile ? (
+              <Button type="text" icon={<MenuUnfoldOutlined />} onClick={() => setDrawerVisible(true)} />
+            ) : (
+              <Button
+                type="text"
+                icon={collapsed ? <MenuUnfoldOutlined /> : <MenuFoldOutlined />}
+                onClick={() => setCollapsed(!collapsed)}
+              />
+            )}
+
             <div style={{ minWidth: 0, flex: 1 }}>
-              <Title 
-                level={4} 
-                style={{ 
+              <Title
+                level={4}
+                style={{
                   margin: 0,
                   fontSize: isMobile ? "16px" : "20px",
                   whiteSpace: "nowrap",
                   overflow: "hidden",
-                  textOverflow: "ellipsis"
+                  textOverflow: "ellipsis",
                 }}
               >
-                Welcome, {user?.name || 'User'}
+                Welcome, {user?.name || "User"}
               </Title>
-              {!isMobile && (
-                <div style={{ 
-                  fontSize: "12px", 
-                  color: "#666",
-                  textTransform: "capitalize"
-                }}>
-                  {user?.designation} • {user?.role}
-                </div>
-              )}
             </div>
           </div>
-          
-          <Space size="middle">
-            <Badge count={0}>
-              <Button 
-                type="text" 
-                icon={<BellOutlined />}
-                style={{ 
-                  display: "flex",
-                  alignItems: "center",
-                  justifyContent: "center"
-                }}
-              />
+
+          <Space size="small">
+            <Badge count={0} showZero>
+              <Button type="text" icon={<BellOutlined />} />
             </Badge>
-            <Dropdown 
-              menu={{ items: userMenuItems }} 
-              placement="bottomRight"
-              trigger={['click']}
-            >
-              <div style={{ 
-                display: "flex", 
-                alignItems: "center", 
-                cursor: "pointer",
-                padding: "4px 8px",
-                borderRadius: "6px",
-                transition: "background-color 0.2s"
-              }}>
-                <Avatar 
-                  size={isMobile ? 32 : 36}
-                  style={{ 
-                    backgroundColor: "#1890ff",
-                    fontSize: isMobile ? "14px" : "16px"
-                  }}
-                >
-                  {user?.name?.charAt(0)?.toUpperCase() || 'U'}
-                </Avatar>
-                {!isMobile && (
-                  <div style={{ 
-                    marginLeft: "8px",
-                    textAlign: "left",
-                    minWidth: 0
-                  }}>
-                    <div style={{ 
-                      fontSize: "14px", 
-                      fontWeight: 500,
-                      whiteSpace: "nowrap",
-                      overflow: "hidden",
-                      textOverflow: "ellipsis",
-                      maxWidth: "120px"
-                    }}>
-                      {user?.name}
-                    </div>
-                    <div style={{ 
-                      fontSize: "12px", 
-                      color: "#666",
-                      textTransform: "capitalize"
-                    }}>
-                      {user?.role}
-                    </div>
-                  </div>
-                )}
-              </div>
+            <Dropdown menu={{ items: userMenuItems }} placement="bottomRight" trigger={["click"]}>
+              <Avatar style={{ cursor: "pointer", backgroundColor: "#1890ff" }}>
+                {user?.name?.charAt(0)?.toUpperCase() || "U"}
+              </Avatar>
             </Dropdown>
           </Space>
         </Header>
@@ -326,46 +237,46 @@ function AppContent() {
           <Routes>
             <Route path="/" element={<Navigate to="/dashboard" replace />} />
             <Route path="/login" element={<LoginPage />} />
-            <Route 
-              path="/dashboard" 
+            <Route
+              path="/dashboard"
               element={
                 <ProtectedRoute>
                   <Dashboard />
                 </ProtectedRoute>
-              } 
+              }
             />
-            <Route 
-              path="/profile" 
+            <Route
+              path="/profile"
               element={
                 <ProtectedRoute>
                   <UserProfile />
                 </ProtectedRoute>
-              } 
+              }
             />
-            {/* <Route path="/timeline" element={<GanttChart />} /> */}
-            <Route 
-              path="/projects" 
+            <Route path="/timeline" element={<GanttChart />} />
+            <Route
+              path="/projects"
               element={
                 <ProtectedRoute>
                   <Projects />
                 </ProtectedRoute>
-              } 
+              }
             />
-            <Route 
-              path="/tasks" 
+            <Route
+              path="/tasks"
               element={
                 <ProtectedRoute>
                   <Tasks />
                 </ProtectedRoute>
-              } 
+              }
             />
-            <Route 
-              path="/reports" 
+            <Route
+              path="/reports"
               element={
                 <ProtectedRoute requiredRole="manager">
                   <Reports />
                 </ProtectedRoute>
-              } 
+              }
             />
             <Route path="*" element={<Navigate to="/dashboard" replace />} />
           </Routes>
@@ -379,13 +290,9 @@ function App() {
   return (
     <AuthProvider>
       <Router>
-        {/* <GlobalStateProvider> */}
-        {/* <DataProvider> */}
         <Routes>
           <Route path="/*" element={<AppContent />} />
         </Routes>
-        {/* </DataProvider> */}
-        {/* </GlobalStateProvider> */}
       </Router>
     </AuthProvider>
   );
