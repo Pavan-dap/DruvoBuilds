@@ -1,8 +1,8 @@
 import axios from "axios";
-
+const BASE_URL = import.meta.env.VITE_API_BASE_URL
 // Create axios instance with base configuration
 const api = axios.create({
-    baseURL: import.meta.env.VITE_API_BASE_URL || "http://127.0.0.1:8000/api",
+    baseURL: BASE_URL || "http://127.0.0.1:8000/api",
     headers: {
         "Content-Type": "application/json",
     },
@@ -41,20 +41,20 @@ api.interceptors.response.use(
 export const authAPI = {
     login: async (user_id, password) => {
         try {
-            const response = await api.post(import.meta.env.VITE_LOGIN_ENDPOINT || '/login_view/', {
+            const response = await api.post('/login_view/', {
                 user_id,
                 password
             });
             return { success: true, data: response.data };
         } catch (error) {
             console.error('Login error:', error);
-            return { 
-                success: false, 
+            return {
+                success: false,
                 error: error.response?.data?.message || error.message || 'Login failed'
             };
         }
     },
-    
+
     logout: async () => {
         try {
             await api.post('/logout/');
@@ -64,7 +64,7 @@ export const authAPI = {
             return { success: true };
         }
     },
-    
+
     getCurrentUser: async () => {
         try {
             const response = await api.get('/user/profile/');
