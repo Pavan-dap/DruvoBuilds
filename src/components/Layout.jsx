@@ -9,7 +9,8 @@ import {
   TeamOutlined,
   LogoutOutlined,
   UserOutlined,
-  MenuOutlined
+  MenuOutlined,
+  PlusOutlined
 } from '@ant-design/icons';
 import { useNavigate, useLocation } from 'react-router-dom';
 
@@ -46,6 +47,11 @@ const AppLayout = ({ children, user, onLogout }) => {
       key: '/projects',
       icon: <ProjectOutlined />,
       label: 'Projects',
+    },
+    {
+      key: '/new-project',
+      icon: <PlusOutlined />,
+      label: 'New Project',
     },
     {
       key: '/tasks',
