@@ -123,7 +123,7 @@ function LoginPage({ onLogin }) {
       >
         <div style={{ textAlign: 'center', marginBottom: 24 }}>
           <Title level={2} style={{ color: '#1890ff', marginBottom: 8 }}>
-            CRM-ERP System
+            DruvoBuilds
           </Title>
           <Text type="secondary">Please sign in to continue</Text>
         </div>
