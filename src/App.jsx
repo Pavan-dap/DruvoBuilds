@@ -16,6 +16,7 @@ import {
   Space,
   Typography,
   Badge,
+  message,
 } from "antd";
 import {
   DashboardOutlined,
@@ -35,6 +36,10 @@ import Dashboard from "./pages/Dashboard";
 import Projects from "./pages/Projects";
 import Tasks from "./pages/Tasks";
 import Reports from "./pages/Reports";
+import LoginPage from "./pages/LoginPage";
+import UserProfile from "./components/UserProfile";
+import ProtectedRoute from "./components/ProtectedRoute";
+import { AuthProvider, useAuth } from "./contexts/AuthContext";
 // import GanttChart from "./pages/GanttChart";
 
 // import { DataProvider } from "./contexts/DataContext";
@@ -82,10 +87,17 @@ const menuItems = [
 function AppContent() {
   const location = useLocation();
   const navigate = useNavigate();
+  const { user, logout, isAuthenticated } = useAuth();
 
   const [collapsed, setCollapsed] = useState(false);
   const [isMobile, setIsMobile] = useState(false);
 
+  // Redirect to login if not authenticated
+  useEffect(() => {
+    if (!isAuthenticated && location.pathname !== '/login') {
+      navigate('/login');
+    }
+  }, [isAuthenticated, location.pathname, navigate]);
   const getActiveMenuKey = () => {
     const item = menuItems.find((i) => i.path === location.pathname);
     return item ? item.key : "dashboard";
@@ -103,11 +115,17 @@ function AppContent() {
     return () => window.removeEventListener("resize", checkMobile);
   }, [checkMobile]);
 
+  const handleLogout = () => {
+    logout();
+    message.success('Logged out successfully');
+    navigate('/login');
+  };
   const userMenuItems = [
     {
       key: "profile",
       icon: <UserOutlined />,
       label: "Profile",
+      onClick: () => navigate('/profile'),
     },
     {
       key: "settings",
@@ -119,12 +137,14 @@ function AppContent() {
       key: "logout",
       icon: <LogoutOutlined />,
       label: "Logout",
-      onClick: () => {
-        console.log("Logout clicked");
-      },
+      onClick: handleLogout,
     },
   ];
 
+  // Show login page if not authenticated
+  if (!isAuthenticated) {
+    return <LoginPage />;
+  }
   return (
     <Layout style={{ minHeight: "100vh" }}>
       {/* Sidebar */}
@@ -142,6 +162,7 @@ function AppContent() {
           left: 0,
           top: 0,
           bottom: 0,
+          boxShadow: isMobile ? "2px 0 8px rgba(0,0,0,0.15)" : "none",
         }}
       >
         <div
@@ -149,6 +170,7 @@ function AppContent() {
             padding: "16px",
             textAlign: "center",
             borderBottom: "1px solid #f0f0f0",
+            background: "#fafafa",
           }}
         >
           <Title level={4} style={{ margin: 0, color: "#1890ff" }}>
@@ -175,32 +197,120 @@ function AppContent() {
         <Header
           style={{
             background: "#fff",
-            padding: "0 16px",
+            padding: "0 24px",
             display: "flex",
             justifyContent: "space-between",
             alignItems: "center",
-            boxShadow: "2px 1px 4px rgba(0,0,0,0.1)",
+            boxShadow: "0 2px 8px rgba(0,0,0,0.1)",
             position: "fixed",
-            width: "100%",
+            width: `calc(100% - ${isMobile ? 0 : collapsed ? 80 : 240}px)`,
+            right: 0,
             zIndex: 100,
+            transition: "width 0.2s",
           }}
         >
-          <div style={{ display: "flex", alignItems: "center", gap: "12px" }}>
+          <div style={{ 
+            display: "flex", 
+            alignItems: "center", 
+            gap: "16px",
+            flex: 1,
+            minWidth: 0
+          }}>
             <Button
               type="text"
               icon={collapsed ? <MenuUnfoldOutlined /> : <MenuFoldOutlined />}
               onClick={() => setCollapsed(!collapsed)}
+              style={{ 
+                display: isMobile ? "inline-flex" : "none",
+                alignItems: "center",
+                justifyContent: "center"
+              }}
             />
-            <Title level={4} style={{ margin: 0 }}>
-              Welcome User
-            </Title>
+            <div style={{ minWidth: 0, flex: 1 }}>
+              <Title 
+                level={4} 
+                style={{ 
+                  margin: 0,
+                  fontSize: isMobile ? "16px" : "20px",
+                  whiteSpace: "nowrap",
+                  overflow: "hidden",
+                  textOverflow: "ellipsis"
+                }}
+              >
+                Welcome, {user?.name || 'User'}
+              </Title>
+              {!isMobile && (
+                <div style={{ 
+                  fontSize: "12px", 
+                  color: "#666",
+                  textTransform: "capitalize"
+                }}>
+                  {user?.designation} • {user?.role}
+                </div>
+              )}
+            </div>
           </div>
-          <Space>
+          
+          <Space size="middle">
             <Badge count={0}>
-              <Button type="text" icon={<BellOutlined />} />
+              <Button 
+                type="text" 
+                icon={<BellOutlined />}
+                style={{ 
+                  display: "flex",
+                  alignItems: "center",
+                  justifyContent: "center"
+                }}
+              />
             </Badge>
-            <Dropdown menu={{ items: userMenuItems }} placement="bottomRight">
-              <Avatar>U</Avatar>
+            <Dropdown 
+              menu={{ items: userMenuItems }} 
+              placement="bottomRight"
+              trigger={['click']}
+            >
+              <div style={{ 
+                display: "flex", 
+                alignItems: "center", 
+                cursor: "pointer",
+                padding: "4px 8px",
+                borderRadius: "6px",
+                transition: "background-color 0.2s"
+              }}>
+                <Avatar 
+                  size={isMobile ? 32 : 36}
+                  style={{ 
+                    backgroundColor: "#1890ff",
+                    fontSize: isMobile ? "14px" : "16px"
+                  }}
+                >
+                  {user?.name?.charAt(0)?.toUpperCase() || 'U'}
+                </Avatar>
+                {!isMobile && (
+                  <div style={{ 
+                    marginLeft: "8px",
+                    textAlign: "left",
+                    minWidth: 0
+                  }}>
+                    <div style={{ 
+                      fontSize: "14px", 
+                      fontWeight: 500,
+                      whiteSpace: "nowrap",
+                      overflow: "hidden",
+                      textOverflow: "ellipsis",
+                      maxWidth: "120px"
+                    }}>
+                      {user?.name}
+                    </div>
+                    <div style={{ 
+                      fontSize: "12px", 
+                      color: "#666",
+                      textTransform: "capitalize"
+                    }}>
+                      {user?.role}
+                    </div>
+                  </div>
+                )}
+              </div>
             </Dropdown>
           </Space>
         </Header>
@@ -208,18 +318,55 @@ function AppContent() {
         <Content
           style={{
             marginTop: 64,
-            padding: 16,
+            padding: isMobile ? 16 : 24,
             background: "#f5f5f5",
             minHeight: "calc(100vh - 64px)",
           }}
         >
           <Routes>
             <Route path="/" element={<Navigate to="/dashboard" replace />} />
-            <Route path="/dashboard" element={<Dashboard />} />
+            <Route path="/login" element={<LoginPage />} />
+            <Route 
+              path="/dashboard" 
+              element={
+                <ProtectedRoute>
+                  <Dashboard />
+                </ProtectedRoute>
+              } 
+            />
+            <Route 
+              path="/profile" 
+              element={
+                <ProtectedRoute>
+                  <UserProfile />
+                </ProtectedRoute>
+              } 
+            />
             {/* <Route path="/timeline" element={<GanttChart />} /> */}
-            <Route path="/projects" element={<Projects />} />
-            <Route path="/tasks" element={<Tasks />} />
-            <Route path="/reports" element={<Reports />} />
+            <Route 
+              path="/projects" 
+              element={
+                <ProtectedRoute>
+                  <Projects />
+                </ProtectedRoute>
+              } 
+            />
+            <Route 
+              path="/tasks" 
+              element={
+                <ProtectedRoute>
+                  <Tasks />
+                </ProtectedRoute>
+              } 
+            />
+            <Route 
+              path="/reports" 
+              element={
+                <ProtectedRoute requiredRole="manager">
+                  <Reports />
+                </ProtectedRoute>
+              } 
+            />
             <Route path="*" element={<Navigate to="/dashboard" replace />} />
           </Routes>
         </Content>
@@ -230,15 +377,17 @@ function AppContent() {
 
 function App() {
   return (
-    <Router>
-      {/* <GlobalStateProvider> */}
-      {/* <DataProvider> */}
-      <Routes>
-        <Route path="/*" element={<AppContent />} />
-      </Routes>
-      {/* </DataProvider> */}
-      {/* </GlobalStateProvider> */}
-    </Router>
+    <AuthProvider>
+      <Router>
+        {/* <GlobalStateProvider> */}
+        {/* <DataProvider> */}
+        <Routes>
+          <Route path="/*" element={<AppContent />} />
+        </Routes>
+        {/* </DataProvider> */}
+        {/* </GlobalStateProvider> */}
+      </Router>
+    </AuthProvider>
   );
 }
 
