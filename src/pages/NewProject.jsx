@@ -93,48 +93,6 @@ const NewProject = () => {
     }
   };
 
-  // Open modal for adding/editing tower details
-  const openTowerModal = (index = null) => {
-    setEditingIndex(index);
-    if (index !== null) {
-      towerForm.setFieldsValue(towerDetails[index]);
-    } else {
-      towerForm.resetFields();
-    }
-    setIsModalVisible(true);
-  };
-
-  // Handle tower form submission
-  const handleTowerSubmit = (values) => {
-    const newTowerDetail = {
-      Project_ID: projectId,
-      Towers: values.towers,
-      Floors: values.floors,
-      Units: parseInt(values.units),
-      Units_Type: values.unitsType
-    };
-
-    if (editingIndex !== null) {
-      const updated = [...towerDetails];
-      updated[editingIndex] = newTowerDetail;
-      setTowerDetails(updated);
-      message.success('Tower detail updated successfully!');
-    } else {
-      setTowerDetails([...towerDetails, newTowerDetail]);
-      message.success('Tower detail added successfully!');
-    }
-
-    setIsModalVisible(false);
-    towerForm.resetFields();
-    setEditingIndex(null);
-  };
-
-  // Delete tower detail
-  const deleteTowerDetail = (index) => {
-    const updated = towerDetails.filter((_, i) => i !== index);
-    setTowerDetails(updated);
-    message.success('Tower detail deleted successfully!');
-  };
 
   // Generate tower names automatically
   const generateTowerNames = (count) => {
