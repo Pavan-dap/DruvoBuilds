@@ -355,133 +355,75 @@ const NewProject = () => {
 
       case 1:
         return (
-          <Card title="Tower & Floor Details Configuration" className="step-card">
-            <div style={{ marginBottom: '16px' }}>
-              <Button
-                type="primary"
-                icon={<PlusOutlined />}
-                onClick={() => openTowerModal()}
-              >
-                Add Tower Detail
-              </Button>
+          <Card title="Tower & Floor Units Configuration" className="step-card">
+            <div style={{ marginBottom: '24px' }}>
+              <Text type="secondary">
+                Configure units for each tower and floor. Each tower has {projectData?.Floors} floors.
+              </Text>
             </div>
 
-            <Table
-              dataSource={towerDetails}
-              columns={columns}
-              rowKey={(record, index) => index}
-              pagination={false}
-              locale={{ emptyText: 'No tower details added yet. Click "Add Tower Detail" to start.' }}
-            />
-
-            <div style={{ marginTop: '24px' }}>
-              <Space>
-                <Button onClick={prev}>
-                  Previous
-                </Button>
-                <Button
-                  type="primary"
-                  onClick={handleSaveTowerDetails}
-                  loading={loading}
-                  disabled={towerDetails.length === 0}
-                >
-                  Save Project
-                </Button>
-              </Space>
-            </div>
-
-            <Modal
-              title={editingIndex !== null ? "Edit Tower Detail" : "Add Tower Detail"}
-              open={isModalVisible}
-              onCancel={() => {
-                setIsModalVisible(false);
-                towerForm.resetFields();
-                setEditingIndex(null);
-              }}
-              footer={null}
-              width={600}
+            <Form
+              layout="vertical"
+              onFinish={handleTowerUnitsSubmit}
+              size="large"
             >
-              <Form
-                form={towerForm}
-                layout="vertical"
-                onFinish={handleTowerSubmit}
-                size="large"
-              >
-                <Row gutter={[16, 16]}>
-                  <Col xs={24} md={12}>
-                    <Form.Item
-                      label="Tower Name"
-                      name="towers"
-                      rules={[{ required: true, message: 'Please select tower name' }]}
-                    >
-                      <Select placeholder="Select tower">
-                        {projectData && generateTowerNames(projectData.Towers).map(tower => (
-                          <Option key={tower} value={tower}>{tower}</Option>
-                        ))}
-                      </Select>
-                    </Form.Item>
-                  </Col>
-                  <Col xs={24} md={12}>
-                    <Form.Item
-                      label="Floor"
-                      name="floors"
-                      rules={[{ required: true, message: 'Please select floor' }]}
-                    >
-                      <Select placeholder="Select floor">
-                        {projectData && generateFloorOptions(projectData.Floors).map(floor => (
-                          <Option key={floor} value={floor}>{floor}</Option>
-                        ))}
-                      </Select>
-                    </Form.Item>
-                  </Col>
-                </Row>
+              {projectData && generateTowerNames(projectData.Towers).map(towerName => (
+                <Card
+                  key={towerName}
+                  title={towerName}
+                  style={{ marginBottom: '24px' }}
+                  type="inner"
+                >
+                  <Row gutter={[16, 16]}>
+                    {Array.from({ length: projectData.Floors }, (_, floorIndex) => {
+                      const floorNumber = floorIndex + 1;
+                      const floorName = `${floorNumber}${floorNumber === 1 ? 'st' : floorNumber === 2 ? 'nd' : floorNumber === 3 ? 'rd' : 'th'} Floor`;
 
-                <Row gutter={[16, 16]}>
-                  <Col xs={24} md={12}>
-                    <Form.Item
-                      label="Number of Units"
-                      name="units"
-                      rules={[{ required: true, message: 'Please enter number of units' }]}
-                    >
-                      <InputNumber
-                        min={1}
-                        max={500}
-                        placeholder="e.g. 109"
-                        style={{ width: '100%' }}
-                      />
-                    </Form.Item>
-                  </Col>
-                  <Col xs={24} md={12}>
-                    <Form.Item
-                      label="Unit Type"
-                      name="unitsType"
-                      rules={[{ required: true, message: 'Please select unit type' }]}
-                    >
-                      <Select placeholder="Select unit type" showSearch>
-                        {unitTypes.map(type => (
-                          <Option key={type} value={type}>{type}</Option>
-                        ))}
-                      </Select>
-                    </Form.Item>
-                  </Col>
-                </Row>
+                      return (
+                        <Col xs={24} md={12} lg={8} key={floorNumber}>
+                          <Card size="small" title={floorName}>
+                            <Form.Item
+                              label="Units"
+                              name={`${towerName}_floor_${floorNumber}_units`}
+                              rules={[{ required: false, message: 'Enter number of units' }]}
+                            >
+                              <InputNumber
+                                min={0}
+                                max={50}
+                                placeholder="Units"
+                                style={{ width: '100%' }}
+                              />
+                            </Form.Item>
+                            <Form.Item
+                              label="Unit Type"
+                              name={`${towerName}_floor_${floorNumber}_type`}
+                              initialValue="3BHK"
+                            >
+                              <Select placeholder="Select type" size="small">
+                                {unitTypes.map(type => (
+                                  <Option key={type} value={type}>{type}</Option>
+                                ))}
+                              </Select>
+                            </Form.Item>
+                          </Card>
+                        </Col>
+                      );
+                    })}
+                  </Row>
+                </Card>
+              ))}
 
-                <Form.Item>
-                  <Space>
-                    <Button onClick={() => {
-                      setIsModalVisible(false);
-                      towerForm.resetFields();
-                      setEditingIndex(null);
-                    }}>
-                      Cancel
-                    </Button>
-                    <Button type="primary" htmlType="submit">
-                      {editingIndex !== null ? 'Update' : 'Add'} Tower Detail
-                    </Button>
-                  </Space>
-                </Form.Item>
-              </Form>
-            </Modal>
+              <Form.Item style={{ marginTop: '24px' }}>
+                <Space>
+                  <Button onClick={prev}>
+                    Previous
+                  </Button>
+                  <Button type="primary" htmlType="submit" loading={loading}>
+                    Save Project
+                  </Button>
+                </Space>
+              </Form.Item>
+            </Form>
           </Card>
         );
 
