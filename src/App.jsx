@@ -66,10 +66,11 @@ function AppContent() {
 
   // Redirect to login if not authenticated
   useEffect(() => {
-    if (!isAuthenticated && location.pathname !== "/login") {
+    if (!isAuthenticated && location.pathname !== "/login" && location.pathname !== "/") {
       navigate("/login");
+    } else if (isAuthenticated && location.pathname === "/login") {
+      navigate("/dashboard");
     }
-  }, [isAuthenticated, location.pathname, navigate]);
 
   const getActiveMenuKey = () => {
     const item = menuItems.find((i) => i.path === location.pathname);

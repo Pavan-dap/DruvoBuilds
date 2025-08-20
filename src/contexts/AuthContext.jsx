@@ -73,15 +73,15 @@ export const AuthProvider = ({ children }) => {
   useEffect(() => {
     // Check if user is logged in on app start
     const token = localStorage.getItem('token');
-    const savedUser = localStorage.getItem('currentUser');
+    const savedUser = localStorage.getItem('user');
     
-    if (savedUser) {
+    if (token && savedUser) {
       try {
         const parsedUser = JSON.parse(savedUser);
         setUser(parsedUser);
       } catch (error) {
         console.error('Error parsing saved user:', error);
-        localStorage.removeItem('currentUser');
+        localStorage.removeItem('user');
         localStorage.removeItem('token');
       }
     }
@@ -102,11 +102,19 @@ export const AuthProvider = ({ children }) => {
       // Remove password from user object before storing
       const { password: _, ...userWithoutPassword } = foundUser;
       
-      // Generate a demo token
-      const token = `demo_token_${foundUser.id}_${Date.now()}`;
+      // Create token with user details for demo
+      const tokenData = {
+        userId: foundUser.id,
+        username: foundUser.username,
+        role: foundUser.role,
+        timestamp: Date.now(),
+        expires: Date.now() + (24 * 60 * 60 * 1000) // 24 hours
+      };
+      
+      const token = btoa(JSON.stringify(tokenData)); // Base64 encode for demo
       
       setUser(userWithoutPassword);
-      localStorage.setItem('currentUser', JSON.stringify(userWithoutPassword));
+      localStorage.setItem('user', JSON.stringify(userWithoutPassword));
       localStorage.setItem('token', token);
       
       return { success: true, user: userWithoutPassword };
@@ -117,7 +125,7 @@ export const AuthProvider = ({ children }) => {
 
   const logout = () => {
     setUser(null);
-    localStorage.removeItem('currentUser');
+    localStorage.removeItem('user');
     localStorage.removeItem('token');
   };
 

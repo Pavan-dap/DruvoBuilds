@@ -34,7 +34,6 @@ import { useAuth } from '../contexts/AuthContext';
 const { Title, Text } = Typography;
 const { TextArea } = Input;
 const { Option } = Select;
-const { TabPane } = Tabs;
 const { Panel } = Collapse;
 
 // Demo data for projects
@@ -322,8 +321,14 @@ function Projects() {
         confirmLoading={loading}
       >
         <Form form={form} layout="vertical">
-          <Tabs defaultActiveKey="1">
-            <TabPane tab="Basic Details" key="1">
+          <Tabs 
+            defaultActiveKey="1"
+            items={[
+              {
+                key: "1",
+                label: "Basic Details",
+                children: (
+                  <>
               <Row gutter={16}>
                 <Col span={12}>
                   <Form.Item
@@ -405,9 +410,13 @@ function Projects() {
                   </Form.Item>
                 </Col>
               </Row>
-            </TabPane>
-
-            <TabPane tab="Tower Details" key="2">
+                  </>
+                )
+              },
+              {
+                key: "2", 
+                label: "Tower Details",
+                children: (
               <Form.List name="towers">
                 {(fields, { add, remove }) => (
                   <>
@@ -483,8 +492,10 @@ function Projects() {
                   </>
                 )}
               </Form.List>
-            </TabPane>
-          </Tabs>
+                )
+              }
+            ]}
+          />
         </Form>
       </Modal>
 
