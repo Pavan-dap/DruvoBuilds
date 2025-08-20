@@ -15,7 +15,6 @@ import {
   Select,
   Table,
   Modal,
-  Icon
 } from 'antd';
 import {
   ProjectOutlined,
