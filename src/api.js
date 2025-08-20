@@ -1,101 +1,26 @@
-import axios from "axios";
-const BASE_URL = import.meta.env.VITE_API_BASE_URL
-// Create axios instance with base configuration
-const api = axios.create({
-    baseURL: BASE_URL || "http://127.0.0.1:8000/api",
-    headers: {
-        "Content-Type": "application/json",
-    },
-    timeout: 10000, // 10 second timeout
-});
+// LEGACY FILE - Redirects to new API services
+// This file is kept for backward compatibility
+// Please use the new services from src/services/ instead
 
-// Add request interceptor to include auth token
-api.interceptors.request.use(
-    (config) => {
-        const token = localStorage.getItem('token');
-        if (token) {
-            config.headers.Authorization = `Bearer ${token}`;
-        }
-        return config;
-    },
-    (error) => {
-        return Promise.reject(error);
-    }
-);
+import authService from './services/auth.service.js';
+import projectService from './services/project.service.js';
+import taskService from './services/task.service.js';
+import { apiService } from './services/api.service.js';
 
-// Add response interceptor for error handling
-api.interceptors.response.use(
-    (response) => response,
-    (error) => {
-        if (error.response?.status === 401) {
-            // Clear auth data on unauthorized
-            localStorage.removeItem('user');
-            localStorage.removeItem('token');
-            window.location.href = '/login';
-        }
-        return Promise.reject(error);
-    }
-);
-
-// Auth API functions
+// Export legacy API objects for backward compatibility
 export const authAPI = {
-    login: async (user_id, password) => {
-        try {
-            const response = await api.post('/login_view/', {
-                user_id,
-                password
-            });
-            return { success: true, data: response.data };
-        } catch (error) {
-            console.error('Login error:', error);
-            return {
-                success: false,
-                error: error.response?.data?.message || error.message || 'Login failed'
-            };
-        }
-    },
-
-    logout: async () => {
-        try {
-            await api.post('/logout/');
-            return { success: true };
-        } catch (error) {
-            // Even if logout fails on server, clear local data
-            return { success: true };
-        }
-    },
-
-    getCurrentUser: async () => {
-        try {
-            const response = await api.get('/user/profile/');
-            return { success: true, data: response.data };
-        } catch (error) {
-            return { success: false, error: error.message };
-        }
-    }
+    login: authService.login.bind(authService),
+    logout: authService.logout.bind(authService),
+    getCurrentUser: authService.getCurrentUser.bind(authService)
 };
 
-// Other API endpoints
 export const projectAPI = {
-    getProjects: async () => {
-        try {
-            const response = await api.get('/projects/');
-            return { success: true, data: response.data };
-        } catch (error) {
-            return { success: false, error: error.message };
-        }
-    }
+    getProjects: projectService.getProjects.bind(projectService)
 };
 
 export const taskAPI = {
-    getTasks: async () => {
-        try {
-            const response = await api.get('/tasks/');
-            return { success: true, data: response.data };
-        } catch (error) {
-            return { success: false, error: error.message };
-        }
-    }
+    getTasks: taskService.getTasks.bind(taskService)
 };
 
-export default api;
+// Export the main api instance
+export default apiService;

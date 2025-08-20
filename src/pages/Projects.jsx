@@ -30,6 +30,7 @@ import {
   EnvironmentOutlined
 } from '@ant-design/icons';
 import { useAuth } from '../contexts/AuthContext';
+import projectService from '../services/project.service';
 
 const { Title, Text } = Typography;
 const { TextArea } = Input;
@@ -93,7 +94,7 @@ const initialProjects = [
 
 function Projects() {
   const { user, hasRole } = useAuth();
-  const [projects, setProjects] = useState(initialProjects);
+  const [projects, setProjects] = useState([]);
   const [isModalVisible, setIsModalVisible] = useState(false);
   const [isViewModalVisible, setIsViewModalVisible] = useState(false);
   const [editingProject, setEditingProject] = useState(null);
@@ -103,6 +104,31 @@ function Projects() {
 
   const canEdit = hasRole('manager');
   const canDelete = hasRole('admin');
+
+  useEffect(() => {
+    loadProjects();
+  }, []);
+
+  const loadProjects = async () => {
+    try {
+      setLoading(true);
+      const result = await projectService.getProjects();
+
+      if (result.success) {
+        setProjects(result.data);
+      } else {
+        // Fallback to demo data if API fails
+        setProjects(initialProjects);
+        message.warning('Unable to load projects from server. Showing demo data.');
+      }
+    } catch (error) {
+      console.error('Error loading projects:', error);
+      setProjects(initialProjects);
+      message.error('Failed to load projects');
+    } finally {
+      setLoading(false);
+    }
+  };
 
   const handleAddProject = () => {
     setEditingProject(null);
@@ -124,9 +150,19 @@ function Projects() {
     setIsViewModalVisible(true);
   };
 
-  const handleDeleteProject = (projectId) => {
-    setProjects(projects.filter(p => p.id !== projectId));
-    message.success('Project deleted successfully');
+  const handleDeleteProject = async (projectId) => {
+    try {
+      const result = await projectService.deleteProject(projectId);
+      if (result.success) {
+        setProjects(projects.filter(p => p.id !== projectId));
+        message.success('Project deleted successfully');
+      } else {
+        message.error('Failed to delete project: ' + result.error);
+      }
+    } catch (error) {
+      console.error('Error deleting project:', error);
+      message.error('Failed to delete project');
+    }
   };
 
   const handleModalOk = async () => {
@@ -152,22 +188,38 @@ function Projects() {
 
       if (editingProject) {
         // Update existing project
-        setProjects(projects.map(p => 
-          p.id === editingProject.id 
-            ? { ...p, ...projectData }
-            : p
-        ));
-        message.success('Project updated successfully');
+        const result = await projectService.updateProject(editingProject.id, projectData);
+        if (result.success) {
+          setProjects(projects.map(p =>
+            p.id === editingProject.id
+              ? { ...p, ...projectData }
+              : p
+          ));
+          message.success('Project updated successfully');
+        } else {
+          message.error('Failed to update project: ' + result.error);
+          return;
+        }
       } else {
         // Add new project
-        const newProject = {
-          id: Date.now(),
+        const newProjectData = {
           ...projectData,
           status: 'planning',
           createdAt: new Date().toISOString().split('T')[0]
         };
-        setProjects([...projects, newProject]);
-        message.success('Project created successfully');
+
+        const result = await projectService.createProject(newProjectData);
+        if (result.success) {
+          const newProject = {
+            id: result.data.id || Date.now(),
+            ...newProjectData
+          };
+          setProjects([...projects, newProject]);
+          message.success('Project created successfully');
+        } else {
+          message.error('Failed to create project: ' + result.error);
+          return;
+        }
       }
 
       setIsModalVisible(false);
