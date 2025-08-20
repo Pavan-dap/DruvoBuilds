@@ -11,7 +11,8 @@ import {
   message,
   Row,
   Col,
-  Select
+  Select,
+  Tabs
 } from 'antd';
 import {
   ProjectOutlined,
@@ -34,26 +35,12 @@ const NewProject = () => {
   const [loading, setLoading] = useState(false);
   const navigate = useNavigate();
 
-  const unitTypes = [
-    '3B3T', '3B2T', 'Office'
-  ];
+  const unitTypes = ['3B3T', '3B2T', 'Office'];
 
   const steps = [
-    {
-      title: 'Basic Details',
-      icon: <ProjectOutlined />,
-      description: 'Project information'
-    },
-    {
-      title: 'Tower & Floor Details',
-      icon: <SettingOutlined />,
-      description: 'Configure towers, floors & units'
-    },
-    {
-      title: 'Complete',
-      icon: <CheckCircleOutlined />,
-      description: 'Project created'
-    }
+    { title: 'Basic Details', icon: <ProjectOutlined />, description: 'Project information' },
+    { title: 'Tower & Floor Details', icon: <SettingOutlined />, description: 'Configure towers, floors & units' },
+    { title: 'Complete', icon: <CheckCircleOutlined />, description: 'Project created' }
   ];
 
   const next = () => setCurrentStep(prev => prev + 1);
@@ -91,7 +78,6 @@ const NewProject = () => {
     }
   };
 
-
   // Generate tower names automatically
   const generateTowerNames = (count) => {
     const names = [];
@@ -107,23 +93,29 @@ const NewProject = () => {
     try {
       const towerPayload = [];
 
-      // Generate data for each tower and floor combination
       const towerNames = generateTowerNames(projectData.Towers);
 
       towerNames.forEach(towerName => {
         for (let floor = 1; floor <= projectData.Floors; floor++) {
-          const units = values[`${towerName}_floor_${floor}_units`];
-          const unitType = values[`${towerName}_floor_${floor}_type`] || '3B3T';
+          const floorUnits = values[`${towerName}_floor_${floor}_units`] || [];
 
-          if (units && units > 0) {
-            towerPayload.push({
-              Project_ID: projectId,
-              Towers: towerName,
-              Floors: `${floor}${floor === 1 ? 'st' : floor === 2 ? 'nd' : floor === 3 ? 'rd' : 'th'} Floor`,
-              Units: parseInt(units),
-              Units_Type: unitType
-            });
-          }
+          floorUnits.forEach((unitEntry) => {
+            if (unitEntry && unitEntry.count > 0) {
+              towerPayload.push({
+                Project_ID: projectId,
+                Towers: towerName,
+                Floors: `${floor}${floor === 1 ? 'st' : floor === 2 ? 'nd' : floor === 3 ? 'rd' : 'th'} Floor`,
+                Units: unitEntry.unit_names
+                  ? unitEntry.unit_names
+                    .split(",")
+                    .map(u => u.trim()) // remove spaces
+                    .filter(u => u !== "") // skip empty values
+                  : [],
+                Units_Type: unitEntry.type,
+                Count: parseInt(unitEntry.count),
+              });
+            }
+          });
         }
       });
 
@@ -149,12 +141,7 @@ const NewProject = () => {
       case 0:
         return (
           <Card title="Basic Project Information" className="step-card">
-            <Form
-              form={form}
-              layout="vertical"
-              onFinish={handleBasicDetails}
-              size="large"
-            >
+            <Form form={form} layout="vertical" onFinish={handleBasicDetails} size="large">
               <Row gutter={[16, 16]}>
                 <Col xs={24} md={12}>
                   <Form.Item
@@ -162,7 +149,7 @@ const NewProject = () => {
                     name="projectName"
                     rules={[{ required: true, message: 'Please enter project name' }]}
                   >
-                    <Input placeholder="e.g. Sarada Apartments" />
+                    <Input placeholder="e.g. Mithra Apartments" />
                   </Form.Item>
                 </Col>
                 <Col xs={24} md={12}>
@@ -171,7 +158,7 @@ const NewProject = () => {
                     name="customerName"
                     rules={[{ required: true, message: 'Please enter customer name' }]}
                   >
-                    <Input placeholder="e.g. Pavan" />
+                    <Input placeholder="e.g. Mani" />
                   </Form.Item>
                 </Col>
               </Row>
@@ -207,7 +194,7 @@ const NewProject = () => {
                       { type: 'email', message: 'Please enter a valid email' }
                     ]}
                   >
-                    <Input placeholder="e.g. pavan@gmail.com" />
+                    <Input placeholder="e.g. druvo.mani@gmail.com" />
                   </Form.Item>
                 </Col>
                 <Col xs={24} md={6}>
@@ -221,9 +208,9 @@ const NewProject = () => {
                 </Col>
                 <Col xs={24} md={6}>
                   <Form.Item
-                    label="Maximum Floors"
+                    label="Floors (each tower)"
                     name="floors"
-                    rules={[{ required: true, message: 'Please enter maximum floors' }]}
+                    rules={[{ required: true, message: 'Please enter floors' }]}
                   >
                     <InputNumber min={1} max={100} placeholder="e.g. 20" style={{ width: '100%' }} />
                   </Form.Item>
@@ -232,9 +219,7 @@ const NewProject = () => {
 
               <Form.Item>
                 <Space>
-                  <Button onClick={() => navigate('/projects')}>
-                    Cancel
-                  </Button>
+                  <Button onClick={() => navigate('/projects')}>Cancel</Button>
                   <Button type="primary" htmlType="submit" loading={loading}>
                     Next: Configure Towers
                   </Button>
@@ -253,62 +238,85 @@ const NewProject = () => {
               </Text>
             </div>
 
-            <Form
-              layout="vertical"
-              onFinish={handleTowerUnitsSubmit}
-              size="large"
-            >
-              {projectData && generateTowerNames(projectData.Towers).map(towerName => (
-                <Card
-                  key={towerName}
-                  title={towerName}
-                  style={{ marginBottom: '24px' }}
-                  type="inner"
-                >
-                  <Row gutter={[16, 16]}>
-                    {Array.from({ length: projectData.Floors }, (_, floorIndex) => {
-                      const floorNumber = floorIndex + 1;
-                      const floorName = `${floorNumber}${floorNumber === 1 ? 'st' : floorNumber === 2 ? 'nd' : floorNumber === 3 ? 'rd' : 'th'} Floor`;
+            <Form layout="vertical" onFinish={handleTowerUnitsSubmit} size="large">
+              <Tabs defaultActiveKey="0">
+                {projectData &&
+                  generateTowerNames(projectData.Towers).map((towerName, towerIndex) => (
+                    <Tabs.TabPane tab={towerName} key={towerIndex}>
+                      {Array.from({ length: projectData.Floors }, (_, floorIndex) => {
+                        const floorNumber = floorIndex + 1;
+                        const floorName = `${floorNumber}${floorNumber === 1 ? 'st' : floorNumber === 2 ? 'nd' : floorNumber === 3 ? 'rd' : 'th'
+                          } Floor`;
 
-                      return (
-                        <Col xs={24} md={12} lg={8} key={floorNumber}>
-                          <Card size="small" title={floorName}>
-                            <Form.Item
-                              label="Units"
-                              name={`${towerName}_floor_${floorNumber}_units`}
-                              rules={[{ required: false, message: 'Enter number of units' }]}
-                            >
-                              <InputNumber
-                                min={0}
-                                max={50}
-                                placeholder="Units"
-                                style={{ width: '100%' }}
-                              />
-                            </Form.Item>
-                            <Form.Item
-                              label="Unit Type"
-                              name={`${towerName}_floor_${floorNumber}_type`}
-                              initialValue="3B3T"
-                            >
-                              <Select placeholder="Select type" size="small">
-                                {unitTypes.map(type => (
-                                  <Option key={type} value={type}>{type}</Option>
-                                ))}
-                              </Select>
-                            </Form.Item>
+                        return (
+                          <Card size="small" title={floorName} style={{ marginBottom: '16px' }} key={floorNumber}>
+                            <Form.List name={`${towerName}_floor_${floorNumber}_units`}>
+                              {(fields, { add, remove }) => (
+                                <>
+                                  {fields.map(({ key, name, ...restField }) => (
+                                    <Row gutter={8} key={key} align="middle">
+                                      <Col span={10}>
+                                        <Form.Item
+                                          {...restField}
+                                          name={[name, 'count']}
+                                          label="Units Count"
+                                          rules={[{ required: true, message: 'Enter units count' }]}
+                                        >
+                                          <InputNumber min={1} max={10} style={{ width: '100%' }} />
+                                        </Form.Item>
+                                      </Col>
+                                      <Col span={10}>
+                                        <Form.Item
+                                          {...restField}
+                                          name={[name, 'type']}
+                                          label="Unit Type"
+                                          initialValue="3B3T"
+                                        >
+                                          <Select placeholder="Select type">
+                                            {unitTypes.map((type) => (
+                                              <Option key={type} value={type}>
+                                                {type}
+                                              </Option>
+                                            ))}
+                                          </Select>
+                                        </Form.Item>
+                                      </Col>
+                                      <Col span={4}>
+                                        <Button danger onClick={() => remove(name)}>
+                                          Remove
+                                        </Button>
+                                      </Col>
+                                      <Col span={14}>
+                                        <Form.Item
+                                          {...restField}
+                                          name={[name, 'unit_names']}
+                                          label="Unit Names"
+                                          rules={[{ required: true, message: 'Enter units names' }]}
+                                        >
+                                          <Input style={{ width: '100%' }} placeholder='101, 102, 103..' />
+                                        </Form.Item>
+                                      </Col>
+                                    </Row>
+                                  ))}
+
+                                  <Form.Item>
+                                    <Button type="dashed" onClick={() => add()} block>
+                                      + Add Unit Type
+                                    </Button>
+                                  </Form.Item>
+                                </>
+                              )}
+                            </Form.List>
                           </Card>
-                        </Col>
-                      );
-                    })}
-                  </Row>
-                </Card>
-              ))}
+                        );
+                      })}
+                    </Tabs.TabPane>
+                  ))}
+              </Tabs>
 
               <Form.Item style={{ marginTop: '24px' }}>
                 <Space>
-                  <Button onClick={prev}>
-                    Previous
-                  </Button>
+                  <Button onClick={prev}>Previous</Button>
                   <Button type="primary" htmlType="submit" loading={loading}>
                     Save Project
                   </Button>
@@ -322,9 +330,7 @@ const NewProject = () => {
         return (
           <Card className="step-card success-card">
             <div style={{ textAlign: 'center', padding: '40px 20px' }}>
-              <CheckCircleOutlined
-                style={{ fontSize: '72px', color: '#52c41a', marginBottom: '24px' }}
-              />
+              <CheckCircleOutlined style={{ fontSize: '72px', color: '#52c41a', marginBottom: '24px' }} />
               <Title level={2} style={{ color: '#52c41a' }}>
                 Project Created Successfully!
               </Title>
@@ -337,10 +343,7 @@ const NewProject = () => {
               </Text>
               <div style={{ marginTop: '32px' }}>
                 <Space size="large">
-                  <Button
-                    size="large"
-                    onClick={() => navigate('/projects')}
-                  >
+                  <Button size="large" onClick={() => navigate('/projects')}>
                     View All Projects
                   </Button>
                   <Button
@@ -377,12 +380,7 @@ const NewProject = () => {
       </div>
 
       <Card style={{ marginBottom: '24px' }}>
-        <Steps
-          current={currentStep}
-          items={steps}
-          size="small"
-          style={{ padding: '20px 0' }}
-        />
+        <Steps current={currentStep} items={steps} size="small" style={{ padding: '20px 0' }} />
       </Card>
 
       {renderStepContent()}
@@ -392,16 +390,13 @@ const NewProject = () => {
           max-width: 1200px;
           margin: 0 auto;
         }
-        
         .step-card {
           min-height: 500px;
         }
-        
         .success-card {
           border: 2px solid #52c41a;
           background: linear-gradient(135deg, #f6ffed 0%, #f0f9ff 100%);
         }
-        
         @media (max-width: 768px) {
           .step-card {
             min-height: auto;

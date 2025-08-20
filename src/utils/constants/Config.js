@@ -16,6 +16,7 @@ export const API_PROJECT_DETAILS = `${API_BASE_URL}Project_Details_View/`;
 export const API_PROJECT_DETAILS_UNITS = `${API_BASE_URL}Master_units_View/`;
 
 
+
 // Task endpoints
 export const API_TASKS = `${API_BASE_URL}tasks/`;
 export const API_TASK_CREATE = `${API_BASE_URL}tasks/`;
@@ -41,3 +42,9 @@ export const API_USER_DETAILS = (id) => `${API_BASE_URL}users/${id}/`;
 export const API_DASHBOARD_STATS = `${API_BASE_URL}dashboard/stats/`;
 export const API_DASHBOARD_ACTIVITIES = `${API_BASE_URL}dashboard/activities/`;
 export const API_DASHBOARD_NOTIFICATIONS = `${API_BASE_URL}dashboard/notifications/`;
+
+
+
+
+
+export const API_PROJECT_REQUIREMENTS = `${API_BASE_URL}Required_Doors_View/`;
