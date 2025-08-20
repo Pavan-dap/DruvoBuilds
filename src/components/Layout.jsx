@@ -136,12 +136,14 @@ const AppLayout = ({ children, user, onLogout }) => {
 
       {/* Mobile Drawer */}
       <Drawer
-        title="CRM-ERP System"
+        title="DruvoBuilds"
         placement="left"
         onClose={() => setMobileDrawerVisible(false)}
         open={mobileDrawerVisible}
-        bodyStyle={{ padding: 0, backgroundColor: '#001529' }}
-        headerStyle={{ backgroundColor: '#001529', color: 'white', borderBottom: '1px solid #434343' }}
+        styles={{
+          body: { padding: 0, backgroundColor: '#001529' },
+          header: { backgroundColor: '#001529', color: 'white', borderBottom: '1px solid #434343' }
+        }}
         width={250}
         className="mobile-drawer"
       >
