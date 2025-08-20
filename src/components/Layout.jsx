@@ -49,6 +49,11 @@ const AppLayout = ({ children, user, onLogout }) => {
       label: 'Projects',
     },
     {
+      key: '/new-project',
+      icon: <PlusOutlined />,
+      label: 'New Project',
+    },
+    {
       key: '/tasks',
       icon: <CheckSquareOutlined />,
       label: 'Tasks',
