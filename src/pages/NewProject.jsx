@@ -16,10 +16,7 @@ import {
 import {
   ProjectOutlined,
   SettingOutlined,
-  CheckCircleOutlined,
-  PlusOutlined,
-  DeleteOutlined,
-  EditOutlined
+  CheckCircleOutlined
 } from '@ant-design/icons';
 import { useNavigate } from 'react-router-dom';
 import axios from 'axios';
