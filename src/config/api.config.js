@@ -1,7 +1,9 @@
+import ENV_CONFIG from './environment.js';
+
 // API Configuration
 const API_CONFIG = {
   // Base URL for the API
-  BASE_URL: import.meta.env.VITE_API_BASE_URL || "http://127.0.0.1:8000/api",
+  BASE_URL: ENV_CONFIG.API_BASE_URL,
   
   // Timeout for API requests (in milliseconds)
   TIMEOUT: 10000,
