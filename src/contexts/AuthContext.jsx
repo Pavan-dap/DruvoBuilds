@@ -106,22 +106,28 @@ export const AuthProvider = ({ children }) => {
     return 'incharge';
   };
 
-  const logout = () => {
-    setUser(null);
-    localStorage.removeItem('user');
-    localStorage.removeItem('token');
+  const logout = async () => {
+    try {
+      await authAPI.logout();
+    } catch (error) {
+      console.error('Logout error:', error);
+    } finally {
+      setUser(null);
+      localStorage.removeItem('user');
+      localStorage.removeItem('token');
+    }
   };
 
   const hasRole = (requiredRole) => {
     if (!user) return false;
-    
+
     const roleHierarchy = {
       admin: 4,
       manager: 3,
       executive: 2,
       incharge: 1
     };
-    
+
     return roleHierarchy[user.role] >= roleHierarchy[requiredRole];
   };
 
