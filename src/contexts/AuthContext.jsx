@@ -72,9 +72,18 @@ export const AuthProvider = ({ children }) => {
 
   useEffect(() => {
     // Check if user is logged in on app start
+    const token = localStorage.getItem('token');
     const savedUser = localStorage.getItem('currentUser');
+    
     if (savedUser) {
-      setUser(JSON.parse(savedUser));
+      try {
+        const parsedUser = JSON.parse(savedUser);
+        setUser(parsedUser);
+      } catch (error) {
+        console.error('Error parsing saved user:', error);
+        localStorage.removeItem('currentUser');
+        localStorage.removeItem('token');
+      }
     }
     setLoading(false);
   }, []);
@@ -93,8 +102,12 @@ export const AuthProvider = ({ children }) => {
       // Remove password from user object before storing
       const { password: _, ...userWithoutPassword } = foundUser;
       
+      // Generate a demo token
+      const token = `demo_token_${foundUser.id}_${Date.now()}`;
+      
       setUser(userWithoutPassword);
       localStorage.setItem('currentUser', JSON.stringify(userWithoutPassword));
+      localStorage.setItem('token', token);
       
       return { success: true, user: userWithoutPassword };
     } catch (error) {
@@ -105,6 +118,7 @@ export const AuthProvider = ({ children }) => {
   const logout = () => {
     setUser(null);
     localStorage.removeItem('currentUser');
+    localStorage.removeItem('token');
   };
 
   const hasRole = (requiredRole) => {
