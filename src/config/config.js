@@ -4,9 +4,9 @@ const IMG_URL_PATH = import.meta.env.VITE_IMG_URL_PATH || import.meta.env.VITE_A
 
 // API endpoints
 export const API_ENDPOINTS = {
-  LOGIN: `${API_BASE_URL}/login_view/`,
-  LOGOUT: `${API_BASE_URL}/logout/`,
-  PROFILE: `${API_BASE_URL}/user/profile/`,
+  LOGIN: `${API_BASE_URL}login_view/`,
+  LOGOUT: `${API_BASE_URL}logout/`,
+  PROFILE: `${API_BASE_URL}user/profile/`,
 };
 
 // Media endpoints

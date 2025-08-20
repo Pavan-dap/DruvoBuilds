@@ -4,21 +4,21 @@ import ENV_CONFIG from './environment.js';
 const API_CONFIG = {
   // Base URL for the API
   BASE_URL: ENV_CONFIG.API_BASE_URL,
-  
+
   // Timeout for API requests (in milliseconds)
   TIMEOUT: 10000,
-  
+
   // API Endpoints
   ENDPOINTS: {
     // Authentication
     AUTH: {
-      LOGIN: '/login_view/',
-      LOGOUT: '/logout/',
-      PROFILE: '/user/profile/',
-      REGISTER: '/register/',
-      REFRESH_TOKEN: '/refresh-token/',
+      LOGIN: 'login_view/',
+      LOGOUT: 'logout/',
+      PROFILE: 'user/profile/',
+      REGISTER: 'register/',
+      REFRESH_TOKEN: 'refresh-token/',
     },
-    
+
     // Projects
     PROJECTS: {
       LIST: '/projects/',
@@ -27,7 +27,7 @@ const API_CONFIG = {
       DELETE: (id) => `/projects/${id}/`,
       DETAILS: (id) => `/projects/${id}/`,
     },
-    
+
     // Tasks
     TASKS: {
       LIST: '/tasks/',
@@ -37,7 +37,7 @@ const API_CONFIG = {
       DETAILS: (id) => `/tasks/${id}/`,
       BY_PROJECT: (projectId) => `/projects/${projectId}/tasks/`,
     },
-    
+
     // Reports
     REPORTS: {
       DASHBOARD: '/reports/dashboard/',
@@ -45,7 +45,7 @@ const API_CONFIG = {
       TASK_ANALYTICS: '/reports/task-analytics/',
       USER_PERFORMANCE: '/reports/user-performance/',
     },
-    
+
     // Users
     USERS: {
       LIST: '/users/',
@@ -54,7 +54,7 @@ const API_CONFIG = {
       DELETE: (id) => `/users/${id}/`,
       DETAILS: (id) => `/users/${id}/`,
     },
-    
+
     // Dashboard
     DASHBOARD: {
       STATS: '/dashboard/stats/',
@@ -62,7 +62,7 @@ const API_CONFIG = {
       NOTIFICATIONS: '/dashboard/notifications/',
     }
   },
-  
+
   // HTTP Status Codes
   STATUS_CODES: {
     OK: 200,
@@ -74,13 +74,13 @@ const API_CONFIG = {
     NOT_FOUND: 404,
     INTERNAL_SERVER_ERROR: 500,
   },
-  
+
   // Default headers
   DEFAULT_HEADERS: {
     'Content-Type': 'application/json',
     'Accept': 'application/json',
   },
-  
+
   // Storage keys
   STORAGE_KEYS: {
     TOKEN: 'token',

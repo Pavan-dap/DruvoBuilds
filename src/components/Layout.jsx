@@ -185,9 +185,9 @@ const AppLayout = ({ children, user, onLogout }) => {
             {!isMobile && (
               <Space direction="vertical" size={0}>
                 <Text strong>{user?.name}</Text>
-                <Tag color={getRoleColor(user?.role)} size="small">
+                {/* <Tag color={getRoleColor(user?.role)} size="small">
                   {user?.role?.toUpperCase()}
-                </Tag>
+                </Tag> */}
               </Space>
             )}
             <Button
