@@ -35,9 +35,7 @@ const NewProject = () => {
   const navigate = useNavigate();
 
   const unitTypes = [
-    '1BHK', '2BHK', '3BHK', '4BHK', '5BHK',
-    '1B1T', '2B2T', '3B3T', '4B4T',
-    'Studio', 'Duplex', 'Penthouse', 'Shop', 'Office'
+    '3B3T', '3B2T', 'Office'
   ];
 
   const steps = [
@@ -76,7 +74,7 @@ const NewProject = () => {
       };
 
       const response = await axios.post(API_PROJECTS, payload);
-      
+
       if (response.data && response.data.Project_ID) {
         setProjectId(response.data.Project_ID);
         setProjectData(response.data);
@@ -115,7 +113,7 @@ const NewProject = () => {
       towerNames.forEach(towerName => {
         for (let floor = 1; floor <= projectData.Floors; floor++) {
           const units = values[`${towerName}_floor_${floor}_units`];
-          const unitType = values[`${towerName}_floor_${floor}_type`] || '3BHK';
+          const unitType = values[`${towerName}_floor_${floor}_type`] || '3B3T';
 
           if (units && units > 0) {
             towerPayload.push({
@@ -290,7 +288,7 @@ const NewProject = () => {
                             <Form.Item
                               label="Unit Type"
                               name={`${towerName}_floor_${floorNumber}_type`}
-                              initialValue="3BHK"
+                              initialValue="3B3T"
                             >
                               <Select placeholder="Select type" size="small">
                                 {unitTypes.map(type => (
@@ -324,8 +322,8 @@ const NewProject = () => {
         return (
           <Card className="step-card success-card">
             <div style={{ textAlign: 'center', padding: '40px 20px' }}>
-              <CheckCircleOutlined 
-                style={{ fontSize: '72px', color: '#52c41a', marginBottom: '24px' }} 
+              <CheckCircleOutlined
+                style={{ fontSize: '72px', color: '#52c41a', marginBottom: '24px' }}
               />
               <Title level={2} style={{ color: '#52c41a' }}>
                 Project Created Successfully!
@@ -339,14 +337,14 @@ const NewProject = () => {
               </Text>
               <div style={{ marginTop: '32px' }}>
                 <Space size="large">
-                  <Button 
-                    size="large" 
+                  <Button
+                    size="large"
                     onClick={() => navigate('/projects')}
                   >
                     View All Projects
                   </Button>
-                  <Button 
-                    type="primary" 
+                  <Button
+                    type="primary"
                     size="large"
                     onClick={() => {
                       setCurrentStep(0);
