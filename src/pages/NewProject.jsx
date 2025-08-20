@@ -8,16 +8,14 @@ import {
   Button,
   Space,
   Typography,
-  Tabs,
   message,
   Row,
   Col,
-  Divider
+  Select
 } from 'antd';
 import {
   ProjectOutlined,
   SettingOutlined,
-  BuildOutlined,
   CheckCircleOutlined
 } from '@ant-design/icons';
 import { useNavigate } from 'react-router-dom';
@@ -25,15 +23,22 @@ import axios from 'axios';
 import { API_PROJECTS, API_PROJECT_DETAILS } from '../utils/constants/Config';
 
 const { Title, Text } = Typography;
+const { Option } = Select;
 
 const NewProject = () => {
   const [currentStep, setCurrentStep] = useState(0);
   const [form] = Form.useForm();
   const [projectId, setProjectId] = useState(null);
-  const [towerCount, setTowerCount] = useState(0);
-  const [towerData, setTowerData] = useState({});
+  const [projectData, setProjectData] = useState(null);
+  const [towerDetails, setTowerDetails] = useState([]);
   const [loading, setLoading] = useState(false);
   const navigate = useNavigate();
+
+  const unitTypes = [
+    '1BHK', '2BHK', '3BHK', '4BHK', '5BHK',
+    '1B1T', '2B2T', '3B3T', '4B4T',
+    'Studio', 'Duplex', 'Penthouse', 'Shop', 'Office'
+  ];
 
   const steps = [
     {
@@ -42,14 +47,9 @@ const NewProject = () => {
       description: 'Project information'
     },
     {
-      title: 'Tower Setup',
+      title: 'Tower & Floor Details',
       icon: <SettingOutlined />,
-      description: 'Configure towers'
-    },
-    {
-      title: 'Floor Details',
-      icon: <BuildOutlined />,
-      description: 'Add floors and units'
+      description: 'Configure towers, floors & units'
     },
     {
       title: 'Complete',
@@ -66,22 +66,24 @@ const NewProject = () => {
     setLoading(true);
     try {
       const payload = {
-        Project_Name: values.name,
-        Customer_Name: values.customer,
+        Project_Name: values.projectName,
+        Customer_Name: values.customerName,
         Location: values.location,
-        Contact_No: values.contact,
-        Mail_Id: values.mail,
+        Contact_No: parseInt(values.contactNo),
+        Mail_Id: values.mailId,
+        Towers: parseInt(values.towers),
+        Floors: parseInt(values.floors)
       };
 
       const response = await axios.post(API_PROJECTS, payload);
-      const newProjectId = response.data?.Project_ID;
-
-      if (newProjectId) {
-        setProjectId(newProjectId);
+      
+      if (response.data && response.data.Project_ID) {
+        setProjectId(response.data.Project_ID);
+        setProjectData(response.data);
         message.success('Project created successfully!');
         next();
       } else {
-        message.error('Failed to create project');
+        message.error('Failed to create project - No Project ID returned');
       }
     } catch (error) {
       console.error('Error creating project:', error);
@@ -91,52 +93,49 @@ const NewProject = () => {
     }
   };
 
-  // Step 2: Setup towers
-  const handleTowerSetup = (values) => {
-    const count = values.towerCount || 0;
-    setTowerCount(count);
-    
-    const towers = {};
+
+  // Generate tower names automatically
+  const generateTowerNames = (count) => {
+    const names = [];
     for (let i = 0; i < count; i++) {
-      const towerName = `Tower ${String.fromCharCode(65 + i)}`;
-      towers[towerName] = {
-        floors: values[`tower_${i}_floors`] || 0,
-        units: {}
-      };
+      names.push(`Tower-${String.fromCharCode(65 + i)}`);
     }
-    setTowerData(towers);
-    next();
+    return names;
   };
 
-  // Step 3: Save floor and unit details
-  const handleFloorDetails = async (values) => {
+  // Step 2: Save tower and floor details
+  const handleTowerUnitsSubmit = async (values) => {
     setLoading(true);
     try {
       const towerPayload = [];
 
-      Object.entries(towerData).forEach(([towerName, towerInfo]) => {
-        for (let floor = 1; floor <= towerInfo.floors; floor++) {
-          const units = values[`${towerName}_floor_${floor}_units`] || 0;
-          const unitType = values[`${towerName}_floor_${floor}_type`] || 'Standard';
-          
-          if (units > 0) {
+      // Generate data for each tower and floor combination
+      const towerNames = generateTowerNames(projectData.Towers);
+
+      towerNames.forEach(towerName => {
+        for (let floor = 1; floor <= projectData.Floors; floor++) {
+          const units = values[`${towerName}_floor_${floor}_units`];
+          const unitType = values[`${towerName}_floor_${floor}_type`] || '3BHK';
+
+          if (units && units > 0) {
             towerPayload.push({
               Project_ID: projectId,
               Towers: towerName,
-              Floors: `${floor} Floor`,
-              Units: units,
-              Units_Type: unitType,
+              Floors: `${floor}${floor === 1 ? 'st' : floor === 2 ? 'nd' : floor === 3 ? 'rd' : 'th'} Floor`,
+              Units: parseInt(units),
+              Units_Type: unitType
             });
           }
         }
       });
 
       if (towerPayload.length === 0) {
-        message.warning('Please add at least one unit');
+        message.warning('Please enter units for at least one floor');
         return;
       }
 
       await axios.post(API_PROJECT_DETAILS, towerPayload);
+      setTowerDetails(towerPayload);
       message.success('Project details saved successfully!');
       next();
     } catch (error) {
@@ -162,19 +161,19 @@ const NewProject = () => {
                 <Col xs={24} md={12}>
                   <Form.Item
                     label="Project Name"
-                    name="name"
+                    name="projectName"
                     rules={[{ required: true, message: 'Please enter project name' }]}
                   >
-                    <Input placeholder="Enter project name" />
+                    <Input placeholder="e.g. Sarada Apartments" />
                   </Form.Item>
                 </Col>
                 <Col xs={24} md={12}>
                   <Form.Item
                     label="Customer Name"
-                    name="customer"
+                    name="customerName"
                     rules={[{ required: true, message: 'Please enter customer name' }]}
                   >
-                    <Input placeholder="Enter customer name" />
+                    <Input placeholder="e.g. Pavan" />
                   </Form.Item>
                 </Col>
               </Row>
@@ -186,30 +185,52 @@ const NewProject = () => {
                     name="location"
                     rules={[{ required: true, message: 'Please enter location' }]}
                   >
-                    <Input placeholder="Enter project location" />
+                    <Input placeholder="e.g. Hyderabad" />
                   </Form.Item>
                 </Col>
                 <Col xs={24} md={12}>
                   <Form.Item
                     label="Contact Number"
-                    name="contact"
+                    name="contactNo"
                     rules={[{ required: true, message: 'Please enter contact number' }]}
                   >
-                    <Input placeholder="Enter contact number" />
+                    <Input placeholder="e.g. 9848032949" />
                   </Form.Item>
                 </Col>
               </Row>
 
-              <Form.Item
-                label="Email Address"
-                name="mail"
-                rules={[
-                  { required: true, message: 'Please enter email address' },
-                  { type: 'email', message: 'Please enter a valid email' }
-                ]}
-              >
-                <Input placeholder="Enter email address" />
-              </Form.Item>
+              <Row gutter={[16, 16]}>
+                <Col xs={24} md={12}>
+                  <Form.Item
+                    label="Email Address"
+                    name="mailId"
+                    rules={[
+                      { required: true, message: 'Please enter email address' },
+                      { type: 'email', message: 'Please enter a valid email' }
+                    ]}
+                  >
+                    <Input placeholder="e.g. pavan@gmail.com" />
+                  </Form.Item>
+                </Col>
+                <Col xs={24} md={6}>
+                  <Form.Item
+                    label="Number of Towers"
+                    name="towers"
+                    rules={[{ required: true, message: 'Please enter number of towers' }]}
+                  >
+                    <InputNumber min={1} max={26} placeholder="e.g. 2" style={{ width: '100%' }} />
+                  </Form.Item>
+                </Col>
+                <Col xs={24} md={6}>
+                  <Form.Item
+                    label="Maximum Floors"
+                    name="floors"
+                    rules={[{ required: true, message: 'Please enter maximum floors' }]}
+                  >
+                    <InputNumber min={1} max={100} placeholder="e.g. 20" style={{ width: '100%' }} />
+                  </Form.Item>
+                </Col>
+              </Row>
 
               <Form.Item>
                 <Space>
@@ -217,7 +238,7 @@ const NewProject = () => {
                     Cancel
                   </Button>
                   <Button type="primary" htmlType="submit" loading={loading}>
-                    Next Step
+                    Next: Configure Towers
                   </Button>
                 </Space>
               </Form.Item>
@@ -227,109 +248,65 @@ const NewProject = () => {
 
       case 1:
         return (
-          <Card title="Tower Configuration" className="step-card">
+          <Card title="Tower & Floor Units Configuration" className="step-card">
+            <div style={{ marginBottom: '24px' }}>
+              <Text type="secondary">
+                Configure units for each tower and floor. Each tower has {projectData?.Floors} floors.
+              </Text>
+            </div>
+
             <Form
               layout="vertical"
-              onFinish={handleTowerSetup}
-              size="large"
-              initialValues={{ towerCount }}
-            >
-              <Form.Item
-                label="Number of Towers"
-                name="towerCount"
-                rules={[{ required: true, message: 'Please enter number of towers' }]}
-              >
-                <InputNumber
-                  min={1}
-                  max={26}
-                  placeholder="Enter number of towers"
-                  style={{ width: '100%' }}
-                  onChange={(value) => setTowerCount(value || 0)}
-                />
-              </Form.Item>
-
-              <Divider>Tower Floor Configuration</Divider>
-
-              <Row gutter={[16, 16]}>
-                {Array.from({ length: towerCount }, (_, i) => (
-                  <Col xs={24} md={12} lg={8} key={i}>
-                    <Form.Item
-                      label={`Tower ${String.fromCharCode(65 + i)} - Number of Floors`}
-                      name={`tower_${i}_floors`}
-                      rules={[{ required: true, message: 'Enter number of floors' }]}
-                    >
-                      <InputNumber
-                        min={1}
-                        placeholder="Floors"
-                        style={{ width: '100%' }}
-                      />
-                    </Form.Item>
-                  </Col>
-                ))}
-              </Row>
-
-              <Form.Item>
-                <Space>
-                  <Button onClick={prev}>
-                    Previous
-                  </Button>
-                  <Button type="primary" htmlType="submit">
-                    Next Step
-                  </Button>
-                </Space>
-              </Form.Item>
-            </Form>
-          </Card>
-        );
-
-      case 2:
-        return (
-          <Card title="Floor & Unit Details" className="step-card">
-            <Form
-              layout="vertical"
-              onFinish={handleFloorDetails}
+              onFinish={handleTowerUnitsSubmit}
               size="large"
             >
-              <Tabs type="card">
-                {Object.entries(towerData).map(([towerName, towerInfo]) => (
-                  <Tabs.TabPane tab={towerName} key={towerName}>
-                    <div style={{ padding: '16px 0' }}>
-                      <Title level={4}>{towerName} Configuration</Title>
-                      <Row gutter={[16, 16]}>
-                        {Array.from({ length: towerInfo.floors }, (_, floorIndex) => {
-                          const floorNumber = floorIndex + 1;
-                          return (
-                            <Col xs={24} md={12} key={floorNumber}>
-                              <Card size="small" title={`Floor ${floorNumber}`}>
-                                <Form.Item
-                                  label="Number of Units"
-                                  name={`${towerName}_floor_${floorNumber}_units`}
-                                  rules={[{ required: true, message: 'Enter number of units' }]}
-                                >
-                                  <InputNumber
-                                    min={0}
-                                    placeholder="Units"
-                                    style={{ width: '100%' }}
-                                  />
-                                </Form.Item>
-                                <Form.Item
-                                  label="Unit Type"
-                                  name={`${towerName}_floor_${floorNumber}_type`}
-                                  initialValue="Standard"
-                                >
-                                  <Input placeholder="e.g. 2BHK, 3BHK, etc." />
-                                </Form.Item>
-                              </Card>
-                            </Col>
-                          );
-                        })}
-                      </Row>
-                    </div>
-                  </Tabs.TabPane>
-                ))}
-              </Tabs>
+              {projectData && generateTowerNames(projectData.Towers).map(towerName => (
+                <Card
+                  key={towerName}
+                  title={towerName}
+                  style={{ marginBottom: '24px' }}
+                  type="inner"
+                >
+                  <Row gutter={[16, 16]}>
+                    {Array.from({ length: projectData.Floors }, (_, floorIndex) => {
+                      const floorNumber = floorIndex + 1;
+                      const floorName = `${floorNumber}${floorNumber === 1 ? 'st' : floorNumber === 2 ? 'nd' : floorNumber === 3 ? 'rd' : 'th'} Floor`;
 
-              <Form.Item style={{ marginTop: 24 }}>
+                      return (
+                        <Col xs={24} md={12} lg={8} key={floorNumber}>
+                          <Card size="small" title={floorName}>
+                            <Form.Item
+                              label="Units"
+                              name={`${towerName}_floor_${floorNumber}_units`}
+                              rules={[{ required: false, message: 'Enter number of units' }]}
+                            >
+                              <InputNumber
+                                min={0}
+                                max={50}
+                                placeholder="Units"
+                                style={{ width: '100%' }}
+                              />
+                            </Form.Item>
+                            <Form.Item
+                              label="Unit Type"
+                              name={`${towerName}_floor_${floorNumber}_type`}
+                              initialValue="3BHK"
+                            >
+                              <Select placeholder="Select type" size="small">
+                                {unitTypes.map(type => (
+                                  <Option key={type} value={type}>{type}</Option>
+                                ))}
+                              </Select>
+                            </Form.Item>
+                          </Card>
+                        </Col>
+                      );
+                    })}
+                  </Row>
+                </Card>
+              ))}
+
+              <Form.Item style={{ marginTop: '24px' }}>
                 <Space>
                   <Button onClick={prev}>
                     Previous
@@ -343,7 +320,7 @@ const NewProject = () => {
           </Card>
         );
 
-      case 3:
+      case 2:
         return (
           <Card className="step-card success-card">
             <div style={{ textAlign: 'center', padding: '40px 20px' }}>
@@ -354,7 +331,11 @@ const NewProject = () => {
                 Project Created Successfully!
               </Title>
               <Text type="secondary" style={{ fontSize: '16px' }}>
-                Your project has been created and all details have been saved.
+                Project ID: <strong>{projectId}</strong>
+              </Text>
+              <br />
+              <Text type="secondary" style={{ fontSize: '16px' }}>
+                Your project has been created with {towerDetails.length} tower detail(s).
               </Text>
               <div style={{ marginTop: '32px' }}>
                 <Space size="large">
@@ -370,9 +351,9 @@ const NewProject = () => {
                     onClick={() => {
                       setCurrentStep(0);
                       form.resetFields();
-                      setTowerData({});
+                      setTowerDetails([]);
                       setProjectId(null);
-                      setTowerCount(0);
+                      setProjectData(null);
                     }}
                   >
                     Create Another Project
@@ -393,7 +374,7 @@ const NewProject = () => {
       <div style={{ marginBottom: '24px' }}>
         <Title level={2}>Create New Project</Title>
         <Text type="secondary">
-          Follow the steps below to create a new project with all necessary details.
+          Follow the two-step process to create a new project with detailed tower and floor configuration.
         </Text>
       </div>
 
@@ -410,12 +391,12 @@ const NewProject = () => {
 
       <style jsx>{`
         .new-project-container {
-          max-width: 1000px;
+          max-width: 1200px;
           margin: 0 auto;
         }
         
         .step-card {
-          min-height: 400px;
+          min-height: 500px;
         }
         
         .success-card {
