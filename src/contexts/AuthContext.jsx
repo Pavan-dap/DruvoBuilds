@@ -1,4 +1,5 @@
 import React, { createContext, useContext, useState, useEffect } from 'react';
+import { authAPI } from '../api';
 
 const AuthContext = createContext();
 
@@ -10,62 +11,6 @@ export const useAuth = () => {
   return context;
 };
 
-// Demo users for different roles
-const demoUsers = [
-  {
-    id: 1,
-    username: 'admin',
-    password: 'admin123',
-    name: 'John Admin',
-    emp_no: 'EMP001',
-    designation: 'System Administrator',
-    role: 'admin',
-    status: 'active',
-    email: 'admin@company.com',
-    department: 'IT',
-    joinDate: '2020-01-15'
-  },
-  {
-    id: 2,
-    username: 'manager',
-    password: 'manager123',
-    name: 'Sarah Manager',
-    emp_no: 'EMP002',
-    designation: 'Project Manager',
-    role: 'manager',
-    status: 'active',
-    email: 'manager@company.com',
-    department: 'Operations',
-    joinDate: '2021-03-10'
-  },
-  {
-    id: 3,
-    username: 'executive',
-    password: 'exec123',
-    name: 'Mike Executive',
-    emp_no: 'EMP003',
-    designation: 'Senior Executive',
-    role: 'executive',
-    status: 'active',
-    email: 'executive@company.com',
-    department: 'Sales',
-    joinDate: '2022-06-20'
-  },
-  {
-    id: 4,
-    username: 'incharge',
-    password: 'incharge123',
-    name: 'Lisa Incharge',
-    emp_no: 'EMP004',
-    designation: 'Team Incharge',
-    role: 'incharge',
-    status: 'active',
-    email: 'incharge@company.com',
-    department: 'Marketing',
-    joinDate: '2023-02-14'
-  }
-];
-
 export const AuthProvider = ({ children }) => {
   const [user, setUser] = useState(null);
   const [loading, setLoading] = useState(true);
@@ -74,10 +19,25 @@ export const AuthProvider = ({ children }) => {
     // Check if user is logged in on app start
     const token = localStorage.getItem('token');
     const savedUser = localStorage.getItem('user');
-    
+
     if (token && savedUser) {
       try {
         const parsedUser = JSON.parse(savedUser);
+
+        // Validate token is not expired
+        try {
+          const tokenData = JSON.parse(atob(token));
+          if (tokenData.expires && Date.now() > tokenData.expires) {
+            // Token expired
+            localStorage.removeItem('user');
+            localStorage.removeItem('token');
+            setLoading(false);
+            return;
+          }
+        } catch (tokenError) {
+          // Invalid token format, treat as valid for API tokens
+        }
+
         setUser(parsedUser);
       } catch (error) {
         console.error('Error parsing saved user:', error);
@@ -88,39 +48,62 @@ export const AuthProvider = ({ children }) => {
     setLoading(false);
   }, []);
 
-  const login = async (username, password) => {
+  const login = async (user_id, password) => {
     try {
-      // Demo login - find user in demo data
-      const foundUser = demoUsers.find(
-        u => u.username === username && u.password === password
-      );
+      setLoading(true);
 
-      if (!foundUser) {
-        throw new Error('Invalid username or password');
+      // Call the real API
+      const result = await authAPI.login(user_id, password);
+
+      if (result.success) {
+        const userData = result.data;
+
+        // Map API response to user object
+        const userObj = {
+          id: userData.user_id,
+          user_id: userData.user_id,
+          name: userData.name,
+          designation: userData.designation,
+          status: userData.Emp_Status,
+          role: getRole(userData.designation), // Map designation to role
+        };
+
+        // Generate a token for this session
+        const tokenData = {
+          userId: userData.user_id,
+          timestamp: Date.now(),
+          expires: Date.now() + (24 * 60 * 60 * 1000) // 24 hours
+        };
+
+        const token = btoa(JSON.stringify(tokenData));
+
+        setUser(userObj);
+        localStorage.setItem('user', JSON.stringify(userObj));
+        localStorage.setItem('token', token);
+
+        return { success: true, user: userObj };
+      } else {
+        return { success: false, error: result.error };
       }
-
-      // Remove password from user object before storing
-      const { password: _, ...userWithoutPassword } = foundUser;
-      
-      // Create token with user details for demo
-      const tokenData = {
-        userId: foundUser.id,
-        username: foundUser.username,
-        role: foundUser.role,
-        timestamp: Date.now(),
-        expires: Date.now() + (24 * 60 * 60 * 1000) // 24 hours
-      };
-      
-      const token = btoa(JSON.stringify(tokenData)); // Base64 encode for demo
-      
-      setUser(userWithoutPassword);
-      localStorage.setItem('user', JSON.stringify(userWithoutPassword));
-      localStorage.setItem('token', token);
-      
-      return { success: true, user: userWithoutPassword };
     } catch (error) {
-      return { success: false, error: error.message };
+      console.error('Login error:', error);
+      return { success: false, error: 'Login failed. Please try again.' };
+    } finally {
+      setLoading(false);
     }
+  };
+
+  // Helper function to map designation to role
+  const getRole = (designation) => {
+    const designationLower = designation?.toLowerCase() || '';
+
+    if (designationLower.includes('admin')) return 'admin';
+    if (designationLower.includes('manager')) return 'manager';
+    if (designationLower.includes('executive')) return 'executive';
+    if (designationLower.includes('incharge')) return 'incharge';
+
+    // Default role
+    return 'incharge';
   };
 
   const logout = () => {
