@@ -102,6 +102,14 @@ function App() {
               }
             />
             <Route
+              path="/new-project"
+              element={
+                <ProtectedRoute>
+                  <NewProject />
+                </ProtectedRoute>
+              }
+            />
+            <Route
               path="/tasks"
               element={
                 <ProtectedRoute>
