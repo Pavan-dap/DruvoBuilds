@@ -4,6 +4,7 @@ import { ConfigProvider } from 'antd';
 import LoginPage from './pages/LoginPage.jsx';
 import Dashboard from './pages/Dashboard.jsx';
 import Projects from './pages/Projects.jsx';
+import NewProject from './pages/NewProject.jsx';
 import Tasks from './pages/Tasks.jsx';
 import Reports from './pages/Reports.jsx';
 import Timeline from './pages/Timeline.jsx';
