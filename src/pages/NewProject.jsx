@@ -12,23 +12,26 @@ import {
   Row,
   Col,
   Select,
-  Tabs
+  Tabs,
+  Modal,
+  Table,
+  Divider,
+  Alert,
+  Tooltip,
+  Popconfirm
 } from 'antd';
 import {
   ProjectOutlined,
   SettingOutlined,
-  CheckCircleOutlined
+  CheckCircleOutlined,
+  CopyOutlined,
+  EyeOutlined,
+  DeleteOutlined,
+  PlusOutlined
 } from '@ant-design/icons';
 import { useNavigate } from 'react-router-dom';
 import axios from 'axios';
-
-// Internal API Configuration
-const API_BASE_URL = import.meta.env.VITE_API_BASE_URL || "http://127.0.0.1:8000/api/";
-
-const API_ENDPOINTS = {
-  PROJECTS: `${API_BASE_URL}Project_View/`,
-  PROJECT_DETAILS: `${API_BASE_URL}Project_Details_View/`,
-};
+import { API_ENDPOINTS } from '../utils/config';
 
 const { Title, Text } = Typography;
 const { Option } = Select;
@@ -38,15 +41,20 @@ const NewProject = () => {
   const [form] = Form.useForm();
   const [projectId, setProjectId] = useState(null);
   const [projectData, setProjectData] = useState(null);
-  const [towerDetails, setTowerDetails] = useState([]);
+  const [floorTemplates, setFloorTemplates] = useState({});
+  const [selectedTemplate, setSelectedTemplate] = useState(null);
+  const [towerFloorData, setTowerFloorData] = useState({});
+  const [reviewModalVisible, setReviewModalVisible] = useState(false);
+  const [finalProjectData, setFinalProjectData] = useState(null);
   const [loading, setLoading] = useState(false);
   const navigate = useNavigate();
 
-  const unitTypes = ['3B3T', '3B2T', 'Office'];
+  const unitTypes = ['3B3T', '3B2T', 'Office', 'Shop', 'Duplex'];
 
   const steps = [
     { title: 'Basic Details', icon: <ProjectOutlined />, description: 'Project information' },
-    { title: 'Tower & Floor Details', icon: <SettingOutlined />, description: 'Configure towers, floors & units' },
+    { title: 'Floor Design', icon: <SettingOutlined />, description: 'Design floor templates' },
+    { title: 'Review & Submit', icon: <EyeOutlined />, description: 'Review and confirm' },
     { title: 'Complete', icon: <CheckCircleOutlined />, description: 'Project created' }
   ];
 
@@ -72,6 +80,18 @@ const NewProject = () => {
       if (response.data && response.data.Project_ID) {
         setProjectId(response.data.Project_ID);
         setProjectData(response.data);
+        
+        // Initialize tower floor data structure
+        const towerNames = generateTowerNames(payload.Towers);
+        const initialTowerData = {};
+        towerNames.forEach(tower => {
+          initialTowerData[tower] = {};
+          for (let floor = 1; floor <= payload.Floors; floor++) {
+            initialTowerData[tower][floor] = [];
+          }
+        });
+        setTowerFloorData(initialTowerData);
+        
         message.success('Project created successfully!');
         next();
       } else {
@@ -94,29 +114,92 @@ const NewProject = () => {
     return names;
   };
 
-  // Step 2: Save tower and floor details
-  const handleTowerUnitsSubmit = async (values) => {
-    setLoading(true);
-    try {
-      const towerPayload = [];
+  // Create floor template
+  const createFloorTemplate = (templateName, units) => {
+    if (!templateName || !units || units.length === 0) {
+      message.error('Please provide template name and units');
+      return;
+    }
 
-      const towerNames = generateTowerNames(projectData.Towers);
+    const template = {
+      name: templateName,
+      units: units.filter(unit => unit && unit.count > 0),
+      createdAt: new Date().toISOString()
+    };
 
-      towerNames.forEach(towerName => {
-        for (let floor = 1; floor <= projectData.Floors; floor++) {
-          const floorUnits = values[`${towerName}_floor_${floor}_units`] || [];
+    setFloorTemplates(prev => ({
+      ...prev,
+      [templateName]: template
+    }));
 
-          floorUnits.forEach((unitEntry) => {
+    message.success(`Floor template "${templateName}" created successfully!`);
+  };
+
+  // Apply template to floor
+  const applyTemplateToFloor = (tower, floor, templateName) => {
+    const template = floorTemplates[templateName];
+    if (!template) return;
+
+    setTowerFloorData(prev => ({
+      ...prev,
+      [tower]: {
+        ...prev[tower],
+        [floor]: [...template.units]
+      }
+    }));
+
+    message.success(`Template "${templateName}" applied to ${tower} Floor ${floor}`);
+  };
+
+  // Apply template to all floors in tower
+  const applyTemplateToTower = (tower, templateName) => {
+    const template = floorTemplates[templateName];
+    if (!template) return;
+
+    setTowerFloorData(prev => {
+      const newData = { ...prev };
+      Object.keys(newData[tower]).forEach(floor => {
+        newData[tower][floor] = [...template.units];
+      });
+      return newData;
+    });
+
+    message.success(`Template "${templateName}" applied to all floors in ${tower}`);
+  };
+
+  // Apply template to all towers
+  const applyTemplateToAllTowers = (templateName) => {
+    const template = floorTemplates[templateName];
+    if (!template) return;
+
+    setTowerFloorData(prev => {
+      const newData = { ...prev };
+      Object.keys(newData).forEach(tower => {
+        Object.keys(newData[tower]).forEach(floor => {
+          newData[tower][floor] = [...template.units];
+        });
+      });
+      return newData;
+    });
+
+    message.success(`Template "${templateName}" applied to all towers and floors`);
+  };
+
+  // Prepare final data for review
+  const prepareReviewData = () => {
+    const reviewData = [];
+    
+    Object.entries(towerFloorData).forEach(([tower, floors]) => {
+      Object.entries(floors).forEach(([floor, units]) => {
+        if (units && units.length > 0) {
+          units.forEach(unitEntry => {
             if (unitEntry && unitEntry.count > 0) {
-              towerPayload.push({
+              reviewData.push({
                 Project_ID: projectId,
-                Towers: towerName,
-                Floors: `${floor}${floor === 1 ? 'st' : floor === 2 ? 'nd' : floor === 3 ? 'rd' : 'th'} Floor`,
+                Towers: tower,
+                Floors: `${floor}${floor === '1' ? 'st' : floor === '2' ? 'nd' : floor === '3' ? 'rd' : 'th'} Floor`,
                 Units: unitEntry.unit_names
-                  ? unitEntry.unit_names
-                    .split(",")
-                    .map(u => u.trim()) // remove spaces
-                    .filter(u => u !== "") // skip empty values
+                  ? unitEntry.unit_names.split(",").map(u => u.trim()).filter(u => u !== "")
                   : [],
                 Units_Type: unitEntry.type,
                 Count: parseInt(unitEntry.count),
@@ -125,15 +208,24 @@ const NewProject = () => {
           });
         }
       });
+    });
 
-      if (towerPayload.length === 0) {
-        message.warning('Please enter units for at least one floor');
-        return;
-      }
+    setFinalProjectData(reviewData);
+    setReviewModalVisible(true);
+  };
 
-      await axios.post(API_ENDPOINTS.PROJECT_DETAILS, towerPayload);
-      setTowerDetails(towerPayload);
+  // Final submission
+  const handleFinalSubmit = async () => {
+    if (!finalProjectData || finalProjectData.length === 0) {
+      message.error('No data to submit');
+      return;
+    }
+
+    setLoading(true);
+    try {
+      await axios.post(API_ENDPOINTS.PROJECT_DETAILS, finalProjectData);
       message.success('Project details saved successfully!');
+      setReviewModalVisible(false);
       next();
     } catch (error) {
       console.error('Error saving project details:', error);
@@ -143,12 +235,148 @@ const NewProject = () => {
     }
   };
 
+  // Floor Template Designer Component
+  const FloorTemplateDesigner = () => {
+    const [templateForm] = Form.useForm();
+    const [templateName, setTemplateName] = useState('');
+
+    const handleCreateTemplate = (values) => {
+      const units = values.units || [];
+      createFloorTemplate(templateName, units);
+      templateForm.resetFields();
+      setTemplateName('');
+    };
+
+    return (
+      <Card title="Create Floor Template" size="small" style={{ marginBottom: 16 }}>
+        <Form form={templateForm} onFinish={handleCreateTemplate} layout="vertical">
+          <Row gutter={16}>
+            <Col span={8}>
+              <Form.Item label="Template Name">
+                <Input
+                  value={templateName}
+                  onChange={(e) => setTemplateName(e.target.value)}
+                  placeholder="e.g. Standard Floor, Premium Floor"
+                />
+              </Form.Item>
+            </Col>
+            <Col span={16}>
+              <Form.Item label="Units Configuration">
+                <Form.List name="units">
+                  {(fields, { add, remove }) => (
+                    <>
+                      {fields.map(({ key, name, ...restField }) => (
+                        <Row gutter={8} key={key} align="middle">
+                          <Col span={6}>
+                            <Form.Item
+                              {...restField}
+                              name={[name, 'count']}
+                              rules={[{ required: true, message: 'Count required' }]}
+                            >
+                              <InputNumber min={1} max={10} placeholder="Count" style={{ width: '100%' }} />
+                            </Form.Item>
+                          </Col>
+                          <Col span={6}>
+                            <Form.Item
+                              {...restField}
+                              name={[name, 'type']}
+                              initialValue="3B3T"
+                            >
+                              <Select placeholder="Type">
+                                {unitTypes.map((type) => (
+                                  <Option key={type} value={type}>{type}</Option>
+                                ))}
+                              </Select>
+                            </Form.Item>
+                          </Col>
+                          <Col span={8}>
+                            <Form.Item
+                              {...restField}
+                              name={[name, 'unit_names']}
+                              rules={[{ required: true, message: 'Unit names required' }]}
+                            >
+                              <Input placeholder="101, 102, 103..." />
+                            </Form.Item>
+                          </Col>
+                          <Col span={4}>
+                            <Button danger onClick={() => remove(name)} size="small" icon={<DeleteOutlined />} />
+                          </Col>
+                        </Row>
+                      ))}
+                      <Form.Item>
+                        <Button type="dashed" onClick={() => add()} block icon={<PlusOutlined />}>
+                          Add Unit Type
+                        </Button>
+                      </Form.Item>
+                    </>
+                  )}
+                </Form.List>
+              </Form.Item>
+            </Col>
+          </Row>
+          <Form.Item>
+            <Button type="primary" htmlType="submit" disabled={!templateName}>
+              Create Template
+            </Button>
+          </Form.Item>
+        </Form>
+      </Card>
+    );
+  };
+
+  // Template List Component
+  const TemplateList = () => (
+    <Card title="Available Templates" size="small" style={{ marginBottom: 16 }}>
+      {Object.keys(floorTemplates).length === 0 ? (
+        <Text type="secondary">No templates created yet</Text>
+      ) : (
+        <Row gutter={[8, 8]}>
+          {Object.entries(floorTemplates).map(([name, template]) => (
+            <Col span={24} key={name}>
+              <Card size="small" style={{ backgroundColor: '#f9f9f9' }}>
+                <Row justify="space-between" align="middle">
+                  <Col>
+                    <Text strong>{name}</Text>
+                    <br />
+                    <Text type="secondary" style={{ fontSize: '12px' }}>
+                      {template.units.length} unit type(s)
+                    </Text>
+                  </Col>
+                  <Col>
+                    <Space>
+                      <Tooltip title="Apply to All Towers">
+                        <Button 
+                          size="small" 
+                          icon={<CopyOutlined />}
+                          onClick={() => applyTemplateToAllTowers(name)}
+                        >
+                          All
+                        </Button>
+                      </Tooltip>
+                      <Button 
+                        size="small" 
+                        onClick={() => setSelectedTemplate(name)}
+                        type={selectedTemplate === name ? 'primary' : 'default'}
+                      >
+                        Select
+                      </Button>
+                    </Space>
+                  </Col>
+                </Row>
+              </Card>
+            </Col>
+          ))}
+        </Row>
+      )}
+    </Card>
+  );
+
   const renderStepContent = () => {
     switch (currentStep) {
       case 0:
         return (
-          <Card title="Basic Project Information" size="small" bodyStyle={{ padding: '16px' }}>
-            <Form form={form} layout="vertical" onFinish={handleBasicDetails} size="small">
+          <Card title="Basic Project Information" size="small">
+            <Form form={form} layout="vertical" onFinish={handleBasicDetails}>
               <Row gutter={[16, 16]}>
                 <Col xs={24} md={12}>
                   <Form.Item
@@ -227,8 +455,8 @@ const NewProject = () => {
               <Form.Item>
                 <Space>
                   <Button onClick={() => navigate('/projects')}>Cancel</Button>
-                  <Button type="primary" htmlType="submit" loading={loading} size="small">
-                    Next: Configure Towers
+                  <Button type="primary" htmlType="submit" loading={loading}>
+                    Next: Design Floors
                   </Button>
                 </Space>
               </Form.Item>
@@ -238,135 +466,176 @@ const NewProject = () => {
 
       case 1:
         return (
-          <Card title="Tower & Floor Units Configuration" size="small" bodyStyle={{ padding: '16px' }}>
-            <div style={{ marginBottom: '16px' }}>
-              <Text type="secondary">
-                Configure units for each tower and floor. Each tower has {projectData?.Floors} floors.
-              </Text>
-            </div>
+          <div>
+            <Alert
+              message="Floor Design Templates"
+              description="Create reusable floor templates and apply them to towers and floors. This saves time when multiple floors have the same layout."
+              type="info"
+              showIcon
+              style={{ marginBottom: 16 }}
+            />
 
-            <Form layout="vertical" onFinish={handleTowerUnitsSubmit} size="small">
+            <FloorTemplateDesigner />
+            <TemplateList />
+
+            <Card title="Apply Templates to Towers & Floors" size="small">
               <Tabs defaultActiveKey="0">
                 {projectData &&
                   generateTowerNames(projectData.Towers).map((towerName, towerIndex) => (
-                    <Tabs.TabPane tab={towerName} key={towerIndex}>
-                      {Array.from({ length: projectData.Floors }, (_, floorIndex) => {
-                        const floorNumber = floorIndex + 1;
-                        const floorName = `${floorNumber}${floorNumber === 1 ? 'st' : floorNumber === 2 ? 'nd' : floorNumber === 3 ? 'rd' : 'th'
-                          } Floor`;
+                    <Tabs.TabPane 
+                      tab={
+                        <span>
+                          {towerName}
+                          {selectedTemplate && (
+                            <Tooltip title={`Apply "${selectedTemplate}" to all floors`}>
+                              <Button 
+                                size="small" 
+                                type="link" 
+                                icon={<CopyOutlined />}
+                                onClick={(e) => {
+                                  e.stopPropagation();
+                                  applyTemplateToTower(towerName, selectedTemplate);
+                                }}
+                              />
+                            </Tooltip>
+                          )}
+                        </span>
+                      } 
+                      key={towerIndex}
+                    >
+                      <Row gutter={[12, 12]}>
+                        {Array.from({ length: projectData.Floors }, (_, floorIndex) => {
+                          const floorNumber = floorIndex + 1;
+                          const floorName = `${floorNumber}${floorNumber === 1 ? 'st' : floorNumber === 2 ? 'nd' : floorNumber === 3 ? 'rd' : 'th'} Floor`;
+                          const currentFloorData = towerFloorData[towerName]?.[floorNumber] || [];
 
-                        return (
-                          <Card size="small" title={floorName} style={{ marginBottom: '12px' }} key={floorNumber} bodyStyle={{ padding: '12px' }}>
-                            <Form.List name={`${towerName}_floor_${floorNumber}_units`}>
-                              {(fields, { add, remove }) => (
-                                <>
-                                  {fields.map(({ key, name, ...restField }) => (
-                                    <Row gutter={8} key={key} align="middle">
-                                      <Col span={10}>
-                                        <Form.Item
-                                          {...restField}
-                                          name={[name, 'count']}
-                                          label="Units Count"
-                                          rules={[{ required: true, message: 'Enter units count' }]}
-                                        >
-                                          <InputNumber min={1} max={10} style={{ width: '100%' }} />
-                                        </Form.Item>
-                                      </Col>
-                                      <Col span={10}>
-                                        <Form.Item
-                                          {...restField}
-                                          name={[name, 'type']}
-                                          label="Unit Type"
-                                          initialValue="3B3T"
-                                        >
-                                          <Select placeholder="Select type">
-                                            {unitTypes.map((type) => (
-                                              <Option key={type} value={type}>
-                                                {type}
-                                              </Option>
-                                            ))}
-                                          </Select>
-                                        </Form.Item>
-                                      </Col>
-                                      <Col span={4}>
-                                        <Button danger onClick={() => remove(name)} size="small">
-                                          Remove
-                                        </Button>
-                                      </Col>
-                                      <Col span={14}>
-                                        <Form.Item
-                                          {...restField}
-                                          name={[name, 'unit_names']}
-                                          label="Unit Names"
-                                          rules={[{ required: true, message: 'Enter units names' }]}
-                                        >
-                                          <Input style={{ width: '100%' }} placeholder='101, 102, 103..' />
-                                        </Form.Item>
-                                      </Col>
-                                    </Row>
-                                  ))}
-
-                                  <Form.Item>
-                                    <Button type="dashed" onClick={() => add()} block size="small">
-                                      + Add Unit Type
-                                    </Button>
-                                  </Form.Item>
-                                </>
-                              )}
-                            </Form.List>
-                          </Card>
-                        );
-                      })}
+                          return (
+                            <Col xs={24} md={12} lg={8} key={floorNumber}>
+                              <Card 
+                                size="small" 
+                                title={
+                                  <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
+                                    <span>{floorName}</span>
+                                    {selectedTemplate && (
+                                      <Tooltip title={`Apply "${selectedTemplate}"`}>
+                                        <Button 
+                                          size="small" 
+                                          type="primary" 
+                                          ghost
+                                          icon={<CopyOutlined />}
+                                          onClick={() => applyTemplateToFloor(towerName, floorNumber, selectedTemplate)}
+                                        />
+                                      </Tooltip>
+                                    )}
+                                  </div>
+                                }
+                                style={{ minHeight: '200px' }}
+                              >
+                                {currentFloorData.length > 0 ? (
+                                  <div>
+                                    {currentFloorData.map((unit, idx) => (
+                                      <div key={idx} style={{ marginBottom: '8px', padding: '4px', backgroundColor: '#f0f0f0', borderRadius: '4px' }}>
+                                        <Text strong>{unit.type}</Text> - {unit.count} units
+                                        <br />
+                                        <Text type="secondary" style={{ fontSize: '12px' }}>
+                                          {unit.unit_names}
+                                        </Text>
+                                      </div>
+                                    ))}
+                                  </div>
+                                ) : (
+                                  <div style={{ textAlign: 'center', color: '#999', padding: '20px' }}>
+                                    <Text type="secondary">No template applied</Text>
+                                    <br />
+                                    <Text type="secondary" style={{ fontSize: '12px' }}>
+                                      Select a template and click apply
+                                    </Text>
+                                  </div>
+                                )}
+                              </Card>
+                            </Col>
+                          );
+                        })}
+                      </Row>
                     </Tabs.TabPane>
                   ))}
               </Tabs>
 
-              <Form.Item style={{ marginTop: '16px' }}>
-                <Space>
-                  <Button onClick={prev}>Previous</Button>
-                  <Button type="primary" htmlType="submit" loading={loading} size="small">
-                    Save Project
-                  </Button>
-                </Space>
-              </Form.Item>
-            </Form>
-          </Card>
+              <Divider />
+              
+              <Space>
+                <Button onClick={prev}>Previous</Button>
+                <Button 
+                  type="primary" 
+                  onClick={prepareReviewData}
+                  disabled={Object.values(towerFloorData).every(tower => 
+                    Object.values(tower).every(floor => floor.length === 0)
+                  )}
+                >
+                  Review & Submit
+                </Button>
+              </Space>
+            </Card>
+          </div>
         );
 
       case 2:
         return (
-          <Card size="small" bodyStyle={{ padding: '24px', textAlign: 'center' }}>
-            <div>
-              <CheckCircleOutlined style={{ fontSize: '72px', color: '#52c41a', marginBottom: '24px' }} />
-              <Title level={3} style={{ color: '#52c41a', margin: '16px 0' }}>
-                Project Created Successfully!
-              </Title>
-              <Text type="secondary" style={{ fontSize: '16px' }}>
-                Project ID: <strong>{projectId}</strong>
-              </Text>
-              <br />
-              <Text type="secondary" style={{ fontSize: '16px' }}>
-                Your project has been created with {towerDetails.length} tower detail(s).
-              </Text>
-              <div style={{ marginTop: '24px' }}>
-                <Space size="large">
-                  <Button onClick={() => navigate('/projects')}>
-                    View All Projects
-                  </Button>
-                  <Button
-                    type="primary"
-                    onClick={() => {
-                      setCurrentStep(0);
-                      form.resetFields();
-                      setTowerDetails([]);
-                      setProjectId(null);
-                      setProjectData(null);
-                    }}
-                  >
-                    Create Another Project
-                  </Button>
-                </Space>
-              </div>
+          <Card title="Review Project Data" size="small">
+            <Alert
+              message="Review your project configuration before final submission"
+              type="warning"
+              showIcon
+              style={{ marginBottom: 16 }}
+            />
+            
+            <div style={{ textAlign: 'center', padding: '40px' }}>
+              <Button 
+                type="primary" 
+                size="large"
+                icon={<EyeOutlined />}
+                onClick={prepareReviewData}
+              >
+                Review Project Data
+              </Button>
+            </div>
+          </Card>
+        );
+
+      case 3:
+        return (
+          <Card size="small" style={{ textAlign: 'center', padding: '40px' }}>
+            <CheckCircleOutlined style={{ fontSize: '72px', color: '#52c41a', marginBottom: '24px' }} />
+            <Title level={3} style={{ color: '#52c41a', margin: '16px 0' }}>
+              Project Created Successfully!
+            </Title>
+            <Text type="secondary" style={{ fontSize: '16px' }}>
+              Project ID: <strong>{projectId}</strong>
+            </Text>
+            <br />
+            <Text type="secondary" style={{ fontSize: '16px' }}>
+              Your project has been created with {finalProjectData?.length || 0} floor configuration(s).
+            </Text>
+            <div style={{ marginTop: '24px' }}>
+              <Space size="large">
+                <Button onClick={() => navigate('/projects')}>
+                  View All Projects
+                </Button>
+                <Button
+                  type="primary"
+                  onClick={() => {
+                    setCurrentStep(0);
+                    form.resetFields();
+                    setFloorTemplates({});
+                    setTowerFloorData({});
+                    setProjectId(null);
+                    setProjectData(null);
+                    setFinalProjectData(null);
+                  }}
+                >
+                  Create Another Project
+                </Button>
+              </Space>
             </div>
           </Card>
         );
@@ -376,32 +645,82 @@ const NewProject = () => {
     }
   };
 
+  // Review Modal
+  const ReviewModal = () => {
+    const columns = [
+      { title: 'Tower', dataIndex: 'Towers', key: 'tower' },
+      { title: 'Floor', dataIndex: 'Floors', key: 'floor' },
+      { title: 'Unit Type', dataIndex: 'Units_Type', key: 'type' },
+      { title: 'Count', dataIndex: 'Count', key: 'count' },
+      { 
+        title: 'Units', 
+        dataIndex: 'Units', 
+        key: 'units',
+        render: (units) => Array.isArray(units) ? units.join(', ') : units
+      },
+    ];
+
+    return (
+      <Modal
+        title="Review Project Configuration"
+        open={reviewModalVisible}
+        onCancel={() => setReviewModalVisible(false)}
+        width={1000}
+        footer={[
+          <Button key="cancel" onClick={() => setReviewModalVisible(false)}>
+            Cancel
+          </Button>,
+          <Button key="back" onClick={prev}>
+            Go Back & Edit
+          </Button>,
+          <Popconfirm
+            key="submit"
+            title="Are you sure you want to submit this project?"
+            description="This action cannot be undone."
+            onConfirm={handleFinalSubmit}
+            okText="Yes, Submit"
+            cancelText="No"
+          >
+            <Button type="primary" loading={loading}>
+              Submit Project
+            </Button>
+          </Popconfirm>
+        ]}
+      >
+        <div style={{ marginBottom: 16 }}>
+          <Title level={4}>Project: {projectData?.Project_Name}</Title>
+          <Text type="secondary">
+            Total Configurations: {finalProjectData?.length || 0}
+          </Text>
+        </div>
+        
+        <Table
+          columns={columns}
+          dataSource={finalProjectData || []}
+          rowKey={(record, index) => `${record.Towers}-${record.Floors}-${index}`}
+          pagination={{ pageSize: 10 }}
+          size="small"
+          scroll={{ x: 800 }}
+        />
+      </Modal>
+    );
+  };
+
   return (
-    <div className="new-project-container">
+    <div style={{ maxWidth: '1400px', margin: '0 auto' }}>
       <div style={{ marginBottom: '16px' }}>
         <Title level={3} style={{ margin: 0 }}>Create New Project</Title>
         <Text type="secondary">
-          Follow the two-step process to create a new project with detailed tower and floor configuration.
+          Enhanced project creation with floor templates and data review.
         </Text>
       </div>
 
-      <Card size="small" style={{ marginBottom: '16px' }} bodyStyle={{ padding: '12px' }}>
-        <Steps current={currentStep} items={steps} size="small" style={{ padding: '12px 0' }} />
+      <Card size="small" style={{ marginBottom: '16px' }}>
+        <Steps current={currentStep} items={steps} />
       </Card>
 
       {renderStepContent()}
-
-      <style jsx>{`
-        .new-project-container {
-          max-width: 1200px;
-          margin: 0 auto;
-        }
-        @media (max-width: 768px) {
-          .new-project-container {
-            padding: 0 8px;
-          }
-        }
-      `}</style>
+      <ReviewModal />
     </div>
   );
 };

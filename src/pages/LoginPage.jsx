@@ -2,26 +2,7 @@ import React, { useState } from 'react';
 import { Card, Form, Input, Button, Alert, Typography, Space, Divider } from 'antd';
 import { UserOutlined, LockOutlined } from '@ant-design/icons';
 import axios from 'axios';
-
-// Internal API Configuration
-const API_BASE_URL = import.meta.env.VITE_API_BASE_URL || "http://127.0.0.1:8000/api/";
-
-const API_ENDPOINTS = {
-  LOGIN: `${API_BASE_URL}login_view/`,
-};
-
-const APP_CONFIG = {
-  TIMEOUT: 10000,
-  STORAGE_KEYS: {
-    TOKEN: 'token',
-    USER: 'user',
-    REFRESH_TOKEN: 'refreshToken',
-  },
-  DEFAULT_HEADERS: {
-    'Content-Type': 'application/json',
-    'Accept': 'application/json',
-  }
-};
+import { API_ENDPOINTS, APP_CONFIG } from '../utils/config';
 
 const { Title, Text } = Typography;
 

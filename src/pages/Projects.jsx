@@ -18,18 +18,10 @@ import {
 import { PlusOutlined } from "@ant-design/icons";
 import { useNavigate } from "react-router-dom";
 import axios from "axios";
+import { API_ENDPOINTS } from '../utils/config';
 
 const { Title } = Typography;
 const { Panel } = Collapse;
-
-// Internal API Configuration
-const API_BASE_URL = import.meta.env.VITE_API_BASE_URL || "http://127.0.0.1:8000/api/";
-
-const API_ENDPOINTS = {
-  PROJECTS: `${API_BASE_URL}Project_View/`,
-  PROJECT_DETAILS: `${API_BASE_URL}Project_Details_View/`,
-  PROJECT_REQUIREMENTS: `${API_BASE_URL}Required_Doors_View/`,
-};
 
 const Projects = () => {
   const [projects, setProjects] = useState([]);
