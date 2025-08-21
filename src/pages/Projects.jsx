@@ -18,13 +18,18 @@ import {
 import { PlusOutlined } from "@ant-design/icons";
 import { useNavigate } from "react-router-dom";
 import axios from "axios";
-import {
-  API_PROJECTS,
-  API_PROJECT_REQUIREMENTS,
-} from "./../utils/constants/Config";
 
 const { Title } = Typography;
 const { Panel } = Collapse;
+
+// Internal API Configuration
+const API_BASE_URL = import.meta.env.VITE_API_BASE_URL || "http://127.0.0.1:8000/api/";
+
+const API_ENDPOINTS = {
+  PROJECTS: `${API_BASE_URL}Project_View/`,
+  PROJECT_DETAILS: `${API_BASE_URL}Project_Details_View/`,
+  PROJECT_REQUIREMENTS: `${API_BASE_URL}Required_Doors_View/`,
+};
 
 const Projects = () => {
   const [projects, setProjects] = useState([]);
@@ -40,7 +45,7 @@ const Projects = () => {
   const fetchProjects = async () => {
     setLoading(true);
     try {
-      const res = await axios.get(API_PROJECTS);
+      const res = await axios.get(API_ENDPOINTS.PROJECTS);
       setProjects(res.data || []);
     } catch (err) {
       console.error("Error fetching projects:", err);
@@ -58,7 +63,7 @@ const Projects = () => {
   const fetchProjectDetails = async (projectId) => {
     setDetailsLoading(true);
     try {
-      const res = await axios.get(`${API_PROJECTS}?Project_ID=${projectId}`);
+      const res = await axios.get(`${API_ENDPOINTS.PROJECTS}?Project_ID=${projectId}`);
 
       // Compact structure (Towers → Floors → Units)
       const compact = {};
@@ -131,7 +136,7 @@ const Projects = () => {
           })),
         }));
 
-        await axios.post(`${API_PROJECT_REQUIREMENTS}`, payload);
+        await axios.post(API_ENDPOINTS.PROJECT_REQUIREMENTS, payload);
         message.success("Door requirements saved!");
       } catch (err) {
         console.error("Save failed", err);

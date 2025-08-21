@@ -21,7 +21,14 @@ import {
 } from '@ant-design/icons';
 import { useNavigate } from 'react-router-dom';
 import axios from 'axios';
-import { API_PROJECTS, API_PROJECT_DETAILS } from '../utils/constants/Config';
+
+// Internal API Configuration
+const API_BASE_URL = import.meta.env.VITE_API_BASE_URL || "http://127.0.0.1:8000/api/";
+
+const API_ENDPOINTS = {
+  PROJECTS: `${API_BASE_URL}Project_View/`,
+  PROJECT_DETAILS: `${API_BASE_URL}Project_Details_View/`,
+};
 
 const { Title, Text } = Typography;
 const { Option } = Select;
@@ -60,7 +67,7 @@ const NewProject = () => {
         Floors: parseInt(values.floors)
       };
 
-      const response = await axios.post(API_PROJECTS, payload);
+      const response = await axios.post(API_ENDPOINTS.PROJECTS, payload);
 
       if (response.data && response.data.Project_ID) {
         setProjectId(response.data.Project_ID);
@@ -124,7 +131,7 @@ const NewProject = () => {
         return;
       }
 
-      await axios.post(API_PROJECT_DETAILS, towerPayload);
+      await axios.post(API_ENDPOINTS.PROJECT_DETAILS, towerPayload);
       setTowerDetails(towerPayload);
       message.success('Project details saved successfully!');
       next();
