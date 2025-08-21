@@ -123,7 +123,11 @@ const NewProject = () => {
 
     const template = {
       name: templateName,
-      units: units.filter(unit => unit && unit.count > 0),
+      units: units.filter(unit => unit && unit.count > 0).map(unit => ({
+        ...unit,
+        // Store unit pattern instead of specific numbers
+        unit_pattern: unit.unit_names // This will be used as a pattern
+      })),
       createdAt: new Date().toISOString()
     };
 
@@ -135,16 +139,49 @@ const NewProject = () => {
     message.success(`Floor template "${templateName}" created successfully!`);
   };
 
+  // Generate unit numbers based on floor
+  const generateUnitNumbers = (pattern, floorNumber, count) => {
+    if (!pattern) return '';
+    
+    // Extract the base unit numbers from pattern (e.g., "01, 02, 03" from "101, 102, 103")
+    const baseNumbers = pattern.split(',').map(num => {
+      const trimmed = num.trim();
+      // Get last 2 digits as base number
+      return trimmed.slice(-2);
+    });
+    
+    // Generate new unit numbers with floor prefix
+    const floorPrefix = floorNumber.toString();
+    const newUnits = [];
+    
+    for (let i = 0; i < count; i++) {
+      if (i < baseNumbers.length) {
+        newUnits.push(floorPrefix + baseNumbers[i]);
+      } else {
+        // If we need more units than in pattern, continue the sequence
+        const lastBase = parseInt(baseNumbers[baseNumbers.length - 1]);
+        const nextBase = (lastBase + (i - baseNumbers.length + 1)).toString().padStart(2, '0');
+        newUnits.push(floorPrefix + nextBase);
+      }
+    }
+    
+    return newUnits.join(', ');
+  };
   // Apply template to floor
   const applyTemplateToFloor = (tower, floor, templateName) => {
     const template = floorTemplates[templateName];
     if (!template) return;
 
+    // Generate units with correct floor numbering
+    const unitsWithCorrectNumbers = template.units.map(unit => ({
+      ...unit,
+      unit_names: generateUnitNumbers(unit.unit_pattern || unit.unit_names, floor, unit.count)
+    }));
     setTowerFloorData(prev => ({
       ...prev,
       [tower]: {
         ...prev[tower],
-        [floor]: [...template.units]
+        [floor]: unitsWithCorrectNumbers
       }
     }));
 
@@ -158,8 +195,12 @@ const NewProject = () => {
 
     setTowerFloorData(prev => {
       const newData = { ...prev };
-      Object.keys(newData[tower]).forEach(floor => {
-        newData[tower][floor] = [...template.units];
+      Object.keys(newData[tower]).forEach(floorNum => {
+        const unitsWithCorrectNumbers = template.units.map(unit => ({
+          ...unit,
+          unit_names: generateUnitNumbers(unit.unit_pattern || unit.unit_names, parseInt(floorNum), unit.count)
+        }));
+        newData[tower][floorNum] = unitsWithCorrectNumbers;
       });
       return newData;
     });
@@ -175,8 +216,12 @@ const NewProject = () => {
     setTowerFloorData(prev => {
       const newData = { ...prev };
       Object.keys(newData).forEach(tower => {
-        Object.keys(newData[tower]).forEach(floor => {
-          newData[tower][floor] = [...template.units];
+        Object.keys(newData[tower]).forEach(floorNum => {
+          const unitsWithCorrectNumbers = template.units.map(unit => ({
+            ...unit,
+            unit_names: generateUnitNumbers(unit.unit_pattern || unit.unit_names, parseInt(floorNum), unit.count)
+          }));
+          newData[tower][floorNum] = unitsWithCorrectNumbers;
         });
       });
       return newData;
@@ -295,7 +340,7 @@ const NewProject = () => {
                               name={[name, 'unit_names']}
                               rules={[{ required: true, message: 'Unit names required' }]}
                             >
-                              <Input placeholder="101, 102, 103..." />
+                              <Input placeholder="01, 02, 03... (floor number will be added automatically)" />
                             </Form.Item>
                           </Col>
                           <Col span={4}>
@@ -553,6 +598,10 @@ const NewProject = () => {
                                   </div>
                                 )}
                               </Card>
+                             <br />
+                             <Text type="secondary" style={{ fontSize: '11px' }}>
+                               Pattern: {template.units.map(u => `${u.count}×${u.type}`).join(', ')}
+                             </Text>
                             </Col>
                           );
                         })}
