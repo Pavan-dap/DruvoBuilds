@@ -21,25 +21,25 @@ function Dashboard({ user }) {
 
   return (
     <div>
-      <Card style={{ marginBottom: 24 }}>
-        <div style={{ textAlign: 'center', padding: '40px 20px' }}>
-          <Title level={2} style={{ color: '#52c41a', marginBottom: 16 }}>
+      <Card size="small" style={{ marginBottom: 16 }} bodyStyle={{ padding: '16px' }}>
+        <div style={{ textAlign: 'center' }}>
+          <Title level={3} style={{ color: '#52c41a', margin: '8px 0' }}>
             🎉 Welcome to DruvoBuilds!
           </Title>
-          <Text style={{ fontSize: '16px', color: '#666' }}>
+          <Text style={{ fontSize: '14px', color: '#666' }}>
             You have successfully logged in as <strong>{user?.name}</strong>
           </Text>
-          <div style={{ marginTop: 16 }}>
-            <Tag color={getRoleColor(user?.role)} style={{ fontSize: '14px', padding: '4px 12px' }}>
+          <div style={{ marginTop: 12 }}>
+            <Tag color={getRoleColor(user?.role)} size="small">
               Role: {user?.role?.toUpperCase()}
             </Tag>
           </div>
         </div>
       </Card>
 
-      <Row gutter={[16, 16]} style={{ marginBottom: 24 }}>
+      <Row gutter={[12, 12]} style={{ marginBottom: 16 }}>
         <Col xs={24} sm={12} lg={6}>
-          <Card>
+          <Card size="small">
             <Statistic
               title="Total Projects"
               value={25}
@@ -49,7 +49,7 @@ function Dashboard({ user }) {
           </Card>
         </Col>
         <Col xs={24} sm={12} lg={6}>
-          <Card>
+          <Card size="small">
             <Statistic
               title="Active Tasks"
               value={156}
@@ -59,7 +59,7 @@ function Dashboard({ user }) {
           </Card>
         </Col>
         <Col xs={24} sm={12} lg={6}>
-          <Card>
+          <Card size="small">
             <Statistic
               title="Team Members"
               value={42}
@@ -69,7 +69,7 @@ function Dashboard({ user }) {
           </Card>
         </Col>
         <Col xs={24} sm={12} lg={6}>
-          <Card>
+          <Card size="small">
             <Statistic
               title="Reports Generated"
               value={18}
@@ -80,43 +80,44 @@ function Dashboard({ user }) {
         </Col>
       </Row>
 
-      <Card title="User Information" style={{ marginBottom: 24 }}>
-        <Row gutter={[16, 16]}>
+      <Card title="User Information" size="small" style={{ marginBottom: 16 }} bodyStyle={{ padding: '12px' }}>
+        <Row gutter={[12, 12]}>
           <Col xs={24} sm={12} md={6}>
             <Text strong>User ID:</Text>
-            <div style={{ marginTop: 4 }}>
+            <div style={{ marginTop: 2 }}>
               <Text code>{user?.user_id}</Text>
             </div>
           </Col>
           <Col xs={24} sm={12} md={6}>
             <Text strong>Name:</Text>
-            <div style={{ marginTop: 4 }}>
+            <div style={{ marginTop: 2 }}>
               <Text>{user?.name}</Text>
             </div>
           </Col>
           <Col xs={24} sm={12} md={6}>
             <Text strong>Role:</Text>
-            <div style={{ marginTop: 4 }}>
-              <Tag color={getRoleColor(user?.role)}>
+            <div style={{ marginTop: 2 }}>
+              <Tag color={getRoleColor(user?.role)} size="small">
                 {user?.role?.toUpperCase()}
               </Tag>
             </div>
           </Col>
           <Col xs={24} sm={12} md={6}>
             <Text strong>Status:</Text>
-            <div style={{ marginTop: 4 }}>
-              <Tag color="green">{user?.status}</Tag>
+            <div style={{ marginTop: 2 }}>
+              <Tag color="green" size="small">{user?.status}</Tag>
             </div>
           </Col>
         </Row>
       </Card>
 
-      <Card title="Quick Actions" style={{ marginBottom: 24 }}>
-        <Row gutter={[16, 16]}>
+      <Card title="Quick Actions" size="small" style={{ marginBottom: 16 }} bodyStyle={{ padding: '12px' }}>
+        <Row gutter={[12, 12]}>
           <Col xs={24} sm={12} md={6}>
             <Button
               type="primary"
               block
+              size="small"
               icon={<ProjectOutlined />}
               onClick={() => navigate('/projects')}
             >
@@ -126,6 +127,7 @@ function Dashboard({ user }) {
           <Col xs={24} sm={12} md={6}>
             <Button
               block
+              size="small"
               icon={<CheckSquareOutlined />}
               onClick={() => navigate('/tasks')}
             >
@@ -135,6 +137,7 @@ function Dashboard({ user }) {
           <Col xs={24} sm={12} md={6}>
             <Button
               block
+              size="small"
               icon={<BarChartOutlined />}
               onClick={() => navigate('/reports')}
             >
@@ -144,6 +147,7 @@ function Dashboard({ user }) {
           <Col xs={24} sm={12} md={6}>
             <Button
               block
+              size="small"
               icon={<TeamOutlined />}
               onClick={() => navigate('/users')}
             >
@@ -153,12 +157,12 @@ function Dashboard({ user }) {
         </Row>
       </Card>
 
-      <Card title="System Status">
-        <div style={{ textAlign: 'center', padding: '20px' }}>
-          <Text style={{ color: '#52c41a', fontSize: '16px' }}>
+      <Card title="System Status" size="small" bodyStyle={{ padding: '12px' }}>
+        <div style={{ textAlign: 'center', padding: '12px' }}>
+          <Text style={{ color: '#52c41a', fontSize: '14px' }}>
             ✅ All systems operational
           </Text>
-          <div style={{ marginTop: 8 }}>
+          <div style={{ marginTop: 4 }}>
             <Text type="secondary">
               Responsive sidebar layout with HashRouter navigation
             </Text>

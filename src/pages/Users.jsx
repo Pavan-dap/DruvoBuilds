@@ -107,17 +107,18 @@ const Users = () => {
 
   return (
     <div>
-      <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: 24 }}>
-        <Title level={2}>User Management</Title>
+      <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: 16 }}>
+        <Title level={3} style={{ margin: 0 }}>User Management</Title>
         <Button type="primary" icon={<PlusOutlined />}>
           Add User
         </Button>
       </div>
       
-      <Card>
+      <Card size="small">
         <Table 
           columns={columns} 
           dataSource={mockUsers}
+          size="small"
           scroll={{ x: 800 }}
         />
       </Card>

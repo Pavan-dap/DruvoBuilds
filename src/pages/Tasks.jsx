@@ -96,18 +96,19 @@ const Tasks = () => {
   ];
 
   return (
-    <div>
+        marginBottom: 16
       <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: 24 }}>
-        <Title level={2}>Tasks</Title>
+        <Title level={3} style={{ margin: 0 }}>Tasks</Title>
         <Button type="primary" icon={<PlusOutlined />}>
           Add Task
         </Button>
       </div>
       
-      <Card>
+      <Card size="small">
         <Table 
           columns={columns} 
           dataSource={mockTasks}
+          size="small"
           scroll={{ x: 1000 }}
         />
       </Card>

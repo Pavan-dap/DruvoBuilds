@@ -147,8 +147,8 @@ const NewProject = () => {
     switch (currentStep) {
       case 0:
         return (
-          <Card title="Basic Project Information" className="step-card">
-            <Form form={form} layout="vertical" onFinish={handleBasicDetails} size="large">
+          <Card title="Basic Project Information" size="small" bodyStyle={{ padding: '16px' }}>
+            <Form form={form} layout="vertical" onFinish={handleBasicDetails} size="small">
               <Row gutter={[16, 16]}>
                 <Col xs={24} md={12}>
                   <Form.Item
@@ -227,7 +227,7 @@ const NewProject = () => {
               <Form.Item>
                 <Space>
                   <Button onClick={() => navigate('/projects')}>Cancel</Button>
-                  <Button type="primary" htmlType="submit" loading={loading}>
+                  <Button type="primary" htmlType="submit" loading={loading} size="small">
                     Next: Configure Towers
                   </Button>
                 </Space>
@@ -238,14 +238,14 @@ const NewProject = () => {
 
       case 1:
         return (
-          <Card title="Tower & Floor Units Configuration" className="step-card">
-            <div style={{ marginBottom: '24px' }}>
+          <Card title="Tower & Floor Units Configuration" size="small" bodyStyle={{ padding: '16px' }}>
+            <div style={{ marginBottom: '16px' }}>
               <Text type="secondary">
                 Configure units for each tower and floor. Each tower has {projectData?.Floors} floors.
               </Text>
             </div>
 
-            <Form layout="vertical" onFinish={handleTowerUnitsSubmit} size="large">
+            <Form layout="vertical" onFinish={handleTowerUnitsSubmit} size="small">
               <Tabs defaultActiveKey="0">
                 {projectData &&
                   generateTowerNames(projectData.Towers).map((towerName, towerIndex) => (
@@ -256,7 +256,7 @@ const NewProject = () => {
                           } Floor`;
 
                         return (
-                          <Card size="small" title={floorName} style={{ marginBottom: '16px' }} key={floorNumber}>
+                          <Card size="small" title={floorName} style={{ marginBottom: '12px' }} key={floorNumber} bodyStyle={{ padding: '12px' }}>
                             <Form.List name={`${towerName}_floor_${floorNumber}_units`}>
                               {(fields, { add, remove }) => (
                                 <>
@@ -289,7 +289,7 @@ const NewProject = () => {
                                         </Form.Item>
                                       </Col>
                                       <Col span={4}>
-                                        <Button danger onClick={() => remove(name)}>
+                                        <Button danger onClick={() => remove(name)} size="small">
                                           Remove
                                         </Button>
                                       </Col>
@@ -307,7 +307,7 @@ const NewProject = () => {
                                   ))}
 
                                   <Form.Item>
-                                    <Button type="dashed" onClick={() => add()} block>
+                                    <Button type="dashed" onClick={() => add()} block size="small">
                                       + Add Unit Type
                                     </Button>
                                   </Form.Item>
@@ -321,10 +321,10 @@ const NewProject = () => {
                   ))}
               </Tabs>
 
-              <Form.Item style={{ marginTop: '24px' }}>
+              <Form.Item style={{ marginTop: '16px' }}>
                 <Space>
                   <Button onClick={prev}>Previous</Button>
-                  <Button type="primary" htmlType="submit" loading={loading}>
+                  <Button type="primary" htmlType="submit" loading={loading} size="small">
                     Save Project
                   </Button>
                 </Space>
@@ -335,10 +335,10 @@ const NewProject = () => {
 
       case 2:
         return (
-          <Card className="step-card success-card">
-            <div style={{ textAlign: 'center', padding: '40px 20px' }}>
+          <Card size="small" bodyStyle={{ padding: '24px', textAlign: 'center' }}>
+            <div>
               <CheckCircleOutlined style={{ fontSize: '72px', color: '#52c41a', marginBottom: '24px' }} />
-              <Title level={2} style={{ color: '#52c41a' }}>
+              <Title level={3} style={{ color: '#52c41a', margin: '16px 0' }}>
                 Project Created Successfully!
               </Title>
               <Text type="secondary" style={{ fontSize: '16px' }}>
@@ -348,14 +348,13 @@ const NewProject = () => {
               <Text type="secondary" style={{ fontSize: '16px' }}>
                 Your project has been created with {towerDetails.length} tower detail(s).
               </Text>
-              <div style={{ marginTop: '32px' }}>
+              <div style={{ marginTop: '24px' }}>
                 <Space size="large">
-                  <Button size="large" onClick={() => navigate('/projects')}>
+                  <Button onClick={() => navigate('/projects')}>
                     View All Projects
                   </Button>
                   <Button
                     type="primary"
-                    size="large"
                     onClick={() => {
                       setCurrentStep(0);
                       form.resetFields();
@@ -379,15 +378,15 @@ const NewProject = () => {
 
   return (
     <div className="new-project-container">
-      <div style={{ marginBottom: '24px' }}>
-        <Title level={2}>Create New Project</Title>
+      <div style={{ marginBottom: '16px' }}>
+        <Title level={3} style={{ margin: 0 }}>Create New Project</Title>
         <Text type="secondary">
           Follow the two-step process to create a new project with detailed tower and floor configuration.
         </Text>
       </div>
 
-      <Card style={{ marginBottom: '24px' }}>
-        <Steps current={currentStep} items={steps} size="small" style={{ padding: '20px 0' }} />
+      <Card size="small" style={{ marginBottom: '16px' }} bodyStyle={{ padding: '12px' }}>
+        <Steps current={currentStep} items={steps} size="small" style={{ padding: '12px 0' }} />
       </Card>
 
       {renderStepContent()}
@@ -397,16 +396,9 @@ const NewProject = () => {
           max-width: 1200px;
           margin: 0 auto;
         }
-        .step-card {
-          min-height: 500px;
-        }
-        .success-card {
-          border: 2px solid #52c41a;
-          background: linear-gradient(135deg, #f6ffed 0%, #f0f9ff 100%);
-        }
         @media (max-width: 768px) {
-          .step-card {
-            min-height: auto;
+          .new-project-container {
+            padding: 0 8px;
           }
         }
       `}</style>

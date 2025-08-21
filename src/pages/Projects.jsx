@@ -36,6 +36,7 @@ const Projects = () => {
   const [loading, setLoading] = useState(false);
   const [modalVisible, setModalVisible] = useState(false);
   const [selectedProjectId, setSelectedProjectId] = useState(null);
+  const [selectedProjectName, setSelectedProjectName] = useState('');
   const [projectDetails, setProjectDetails] = useState([]);
   const [detailsLoading, setDetailsLoading] = useState(false);
 
@@ -93,8 +94,9 @@ const Projects = () => {
     }
   };
 
-  const openModal = (projectId) => {
+  const openModal = (projectId, projectName) => {
     setSelectedProjectId(projectId);
+    setSelectedProjectName(projectName);
     fetchProjectDetails(projectId);
     setModalVisible(true);
   };
@@ -204,14 +206,15 @@ const Projects = () => {
           display: "flex",
           justifyContent: "space-between",
           alignItems: "center",
-          marginBottom: 24,
+          marginBottom: 16,
         }}
       >
-        <Title level={2}>Projects</Title>
+        <Title level={3} style={{ margin: 0 }}>Projects</Title>
         <Button
           type="primary"
           icon={<PlusOutlined />}
           onClick={() => navigate("/new-project")}
+          size="small"
         >
           Add Project
         </Button>
@@ -219,30 +222,35 @@ const Projects = () => {
 
       {/* Grid of projects */}
       {loading ? (
-        <Spin size="large" />
+        <div style={{ textAlign: 'center', padding: '40px 0' }}>
+          <Spin size="large" />
+        </div>
       ) : (
-        <Row gutter={[16, 16]}>
+        <Row gutter={[12, 12]}>
           {projects.map((project) => (
             <Col xs={24} sm={12} md={8} lg={6} key={project.id}>
               <Card
                 title={project.Project_Name}
-                variant="bordered"
+                size="small"
                 hoverable
                 extra={<Tag color="blue">{project.Project_ID}</Tag>}
-                onClick={() => openModal(project.Project_ID)}
+                onClick={() => openModal(project.Project_ID, project.Project_Name)}
+                bodyStyle={{ padding: '12px' }}
               >
-                <p>
+                <div style={{ fontSize: '12px', lineHeight: '1.4' }}>
+                <p style={{ margin: '4px 0' }}>
                   <strong>Customer:</strong> {project.Customer_Name}
                 </p>
-                <p>
+                <p style={{ margin: '4px 0' }}>
                   <strong>Location:</strong> {project.Location}
                 </p>
-                <p>
+                <p style={{ margin: '4px 0' }}>
                   <strong>Contact:</strong> {project.Contact_No}
                 </p>
-                <p>
+                <p style={{ margin: '4px 0' }}>
                   <strong>Email:</strong> {project.Mail_Id}
                 </p>
+                </div>
               </Card>
             </Col>
           ))}
@@ -251,48 +259,81 @@ const Projects = () => {
 
       {/* Modal for project details */}
       <Modal
-        title={`Project Details - ${selectedProjectId}`}
+        title={`${selectedProjectName} (${selectedProjectId})`}
         open={modalVisible}
         onCancel={() => setModalVisible(false)}
         footer={null}
-        width={1000}
+        width={1200}
         centered
       >
         {detailsLoading ? (
-          <Spin size="large" />
+          <div style={{ textAlign: 'center', padding: '40px 0' }}>
+            <Spin size="large" />
+          </div>
         ) : (
-          <Collapse accordion>
+          <div>
             {/* Project Details */}
-            <Panel
-              header="Project Structure (Towers → Floors → Units)"
-              key="project-details"
+            <Card 
+              title="🏢 Project Structure" 
+              size="small" 
+              style={{ marginBottom: 16 }}
+              bodyStyle={{ padding: '12px' }}
             >
-              <Collapse accordion>
+              <Row gutter={[12, 12]}>
                 {projectDetails.structure &&
                   Object.entries(projectDetails.structure).map(
-                    ([tower, floors]) => (
-                      <Panel header={tower} key={tower}>
-                        <Collapse>
-                          {Object.entries(floors).map(([floor, units], idx) => (
-                            <Panel header={floor} key={idx}>
-                              {units.map((u, i) => (
-                                <p key={i}>
-                                  <strong>{u.Units_Type}:</strong>{" "}
-                                  {Array.isArray(u.Units)
-                                    ? u.Units.join(", ")
-                                    : u.Units}{" "}
-                                  ({u.Count})
-                                </p>
-                              ))}
-                            </Panel>
+                    ([tower, floors], towerIndex) => (
+                      <Col xs={24} md={12} lg={8} key={tower}>
+                        <Card 
+                          title={tower} 
+                          size="small"
+                          style={{ 
+                            border: '1px solid #d9d9d9',
+                            borderRadius: '6px'
+                          }}
+                          headStyle={{ 
+                            backgroundColor: '#f5f5f5',
+                            minHeight: 'auto',
+                            padding: '8px 12px'
+                          }}
+                          bodyStyle={{ padding: '8px' }}
+                        >
+                          {Object.entries(floors).map(([floor, units], floorIndex) => (
+                            <div key={floorIndex} style={{ marginBottom: '8px' }}>
+                              <div style={{ 
+                                fontWeight: 'bold', 
+                                fontSize: '12px',
+                                color: '#1890ff',
+                                marginBottom: '4px'
+                              }}>
+                                📍 {floor}
+                              </div>
+                              <div style={{ paddingLeft: '12px' }}>
+                                {units.map((u, unitIndex) => (
+                                  <div key={unitIndex} style={{ 
+                                    fontSize: '11px', 
+                                    marginBottom: '2px',
+                                    display: 'flex',
+                                    justifyContent: 'space-between'
+                                  }}>
+                                    <span>
+                                      <Tag size="small" color="green">{u.Units_Type}</Tag>
+                                      {Array.isArray(u.Units) ? u.Units.join(", ") : u.Units}
+                                    </span>
+                                    <span style={{ color: '#666' }}>({u.Count})</span>
+                                  </div>
+                                ))}
+                              </div>
+                            </div>
                           ))}
-                        </Collapse>
-                      </Panel>
+                        </Card>
+                      </Col>
                     )
                   )}
-              </Collapse>
-            </Panel>
+              </Row>
+            </Card>
 
+            <Collapse size="small" style={{ marginTop: 16 }}>
             {/* Required Doors */}
             {/* Required Doors */}
             <Panel header="Required Doors" key="required-doors">
@@ -343,7 +384,7 @@ const Projects = () => {
                   {projectDetails.structure &&
                     Object.keys(projectDetails.structure).map((towerName) => (
                       <div key={towerName} style={{ marginBottom: 24 }}>
-                        <Title level={5}>{towerName}</Title>
+                        <Title level={5} style={{ margin: '8px 0' }}>{towerName}</Title>
                         <DoorRequirementTable
                           towerName={towerName}
                           projectId={selectedProjectId}
@@ -353,7 +394,8 @@ const Projects = () => {
                 </>
               )}
             </Panel>
-          </Collapse>
+            </Collapse>
+          </div>
         )}
       </Modal>
     </div>

@@ -208,10 +208,10 @@ const AppLayout = ({ children, user, onLogout }) => {
         </Header>
 
         <Content style={{
-          margin: isMobile ? '16px' : '24px',
-          padding: isMobile ? '16px' : '24px',
+          margin: isMobile ? '12px' : '16px',
+          padding: isMobile ? '12px' : '16px',
           background: '#f0f2f5',
-          minHeight: 'calc(100vh - 112px)',
+          minHeight: 'calc(100vh - 96px)',
           overflow: 'auto'
         }}>
           {children}

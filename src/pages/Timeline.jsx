@@ -58,16 +58,16 @@ const TimelinePage = () => {
 
   return (
     <div>
-      <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: 24 }}>
-        <Title level={2}>Project Timeline</Title>
+      <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: 16 }}>
+        <Title level={3} style={{ margin: 0 }}>Project Timeline</Title>
         <Button type="primary">Add Milestone</Button>
       </div>
 
-      <Card>
+      <Card size="small">
         <Timeline items={timelineItems} />
       </Card>
 
-      <Card title="Upcoming Deadlines" style={{ marginTop: 16 }}>
+      <Card title="Upcoming Deadlines" size="small" style={{ marginTop: 16 }}>
         <div style={{ color: '#666' }}>
           <p>🎯 <strong>Homepage Design</strong> - Due Feb 15, 2024</p>
           <p>🎯 <strong>API Development</strong> - Due Feb 25, 2024</p>
