@@ -96,8 +96,8 @@ const Tasks = () => {
   ];
 
   return (
-        marginBottom: 16
-      <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: 24 }}>
+    <>
+      <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: 16 }}>
         <Title level={3} style={{ margin: 0 }}>Tasks</Title>
         <Button type="primary" icon={<PlusOutlined />}>
           Add Task
@@ -112,7 +112,7 @@ const Tasks = () => {
           scroll={{ x: 1000 }}
         />
       </Card>
-    </div>
+    </>
   );
 };
 
