@@ -80,7 +80,7 @@ const NewProject = () => {
       if (response.data && response.data.Project_ID) {
         setProjectId(response.data.Project_ID);
         setProjectData(response.data);
-        
+
         // Initialize tower floor data structure
         const towerNames = generateTowerNames(payload.Towers);
         const initialTowerData = {};
@@ -91,7 +91,7 @@ const NewProject = () => {
           }
         });
         setTowerFloorData(initialTowerData);
-        
+
         message.success('Project created successfully!');
         next();
       } else {
@@ -123,11 +123,7 @@ const NewProject = () => {
 
     const template = {
       name: templateName,
-      units: units.filter(unit => unit && unit.count > 0).map(unit => ({
-        ...unit,
-        // Store unit pattern instead of specific numbers
-        unit_pattern: unit.unit_names // This will be used as a pattern
-      })),
+      units: units.filter(unit => unit && unit.count > 0),
       createdAt: new Date().toISOString()
     };
 
@@ -139,49 +135,34 @@ const NewProject = () => {
     message.success(`Floor template "${templateName}" created successfully!`);
   };
 
-  // Generate unit numbers based on floor
-  const generateUnitNumbers = (pattern, floorNumber, count) => {
-    if (!pattern) return '';
-    
-    // Extract the base unit numbers from pattern (e.g., "01, 02, 03" from "101, 102, 103")
-    const baseNumbers = pattern.split(',').map(num => {
-      const trimmed = num.trim();
-      // Get last 2 digits as base number
-      return trimmed.slice(-2);
-    });
-    
-    // Generate new unit numbers with floor prefix
-    const floorPrefix = floorNumber.toString();
-    const newUnits = [];
-    
-    for (let i = 0; i < count; i++) {
-      if (i < baseNumbers.length) {
-        newUnits.push(floorPrefix + baseNumbers[i]);
-      } else {
-        // If we need more units than in pattern, continue the sequence
-        const lastBase = parseInt(baseNumbers[baseNumbers.length - 1]);
-        const nextBase = (lastBase + (i - baseNumbers.length + 1)).toString().padStart(2, '0');
-        newUnits.push(floorPrefix + nextBase);
-      }
-    }
-    
-    return newUnits.join(', ');
-  };
   // Apply template to floor
   const applyTemplateToFloor = (tower, floor, templateName) => {
     const template = floorTemplates[templateName];
     if (!template) return;
 
-    // Generate units with correct floor numbering
-    const unitsWithCorrectNumbers = template.units.map(unit => ({
-      ...unit,
-      unit_names: generateUnitNumbers(unit.unit_pattern || unit.unit_names, floor, unit.count)
-    }));
+    const updatedUnits = template.units.map(unit => {
+      const unitNumbers = unit.unit_names
+        ? unit.unit_names.split(",").map(u => u.trim())
+        : [];
+
+      // Generate new numbers based on floor
+      const newUnitNumbers = unitNumbers.map(num => {
+        // take last 2 digits of base unit (e.g. "01", "02", "03")
+        const flatNo = num.slice(-2);
+        return `${floor}${flatNo}`;
+      });
+
+      return {
+        ...unit,
+        unit_names: newUnitNumbers.join(", ")
+      };
+    });
+
     setTowerFloorData(prev => ({
       ...prev,
       [tower]: {
         ...prev[tower],
-        [floor]: unitsWithCorrectNumbers
+        [floor]: updatedUnits
       }
     }));
 
@@ -195,12 +176,18 @@ const NewProject = () => {
 
     setTowerFloorData(prev => {
       const newData = { ...prev };
-      Object.keys(newData[tower]).forEach(floorNum => {
-        const unitsWithCorrectNumbers = template.units.map(unit => ({
-          ...unit,
-          unit_names: generateUnitNumbers(unit.unit_pattern || unit.unit_names, parseInt(floorNum), unit.count)
-        }));
-        newData[tower][floorNum] = unitsWithCorrectNumbers;
+      Object.keys(newData[tower]).forEach(floor => {
+        const floorNumber = parseInt(floor);
+        newData[tower][floor] = template.units.map(unit => {
+          const unitNumbers = unit.unit_names
+            ? unit.unit_names.split(',').map(u => u.trim())
+            : [];
+          const newUnitNumbers = unitNumbers.map(num => {
+            const flatNo = num.slice(-2); // keep last 2 digits
+            return `${floorNumber}${flatNo}`;
+          });
+          return { ...unit, unit_names: newUnitNumbers.join(', ') };
+        });
       });
       return newData;
     });
@@ -216,12 +203,18 @@ const NewProject = () => {
     setTowerFloorData(prev => {
       const newData = { ...prev };
       Object.keys(newData).forEach(tower => {
-        Object.keys(newData[tower]).forEach(floorNum => {
-          const unitsWithCorrectNumbers = template.units.map(unit => ({
-            ...unit,
-            unit_names: generateUnitNumbers(unit.unit_pattern || unit.unit_names, parseInt(floorNum), unit.count)
-          }));
-          newData[tower][floorNum] = unitsWithCorrectNumbers;
+        Object.keys(newData[tower]).forEach(floor => {
+          const floorNumber = parseInt(floor);
+          newData[tower][floor] = template.units.map(unit => {
+            const unitNumbers = unit.unit_names
+              ? unit.unit_names.split(',').map(u => u.trim())
+              : [];
+            const newUnitNumbers = unitNumbers.map(num => {
+              const flatNo = num.slice(-2);
+              return `${floorNumber}${flatNo}`;
+            });
+            return { ...unit, unit_names: newUnitNumbers.join(', ') };
+          });
         });
       });
       return newData;
@@ -233,7 +226,7 @@ const NewProject = () => {
   // Prepare final data for review
   const prepareReviewData = () => {
     const reviewData = [];
-    
+
     Object.entries(towerFloorData).forEach(([tower, floors]) => {
       Object.entries(floors).forEach(([floor, units]) => {
         if (units && units.length > 0) {
@@ -340,7 +333,7 @@ const NewProject = () => {
                               name={[name, 'unit_names']}
                               rules={[{ required: true, message: 'Unit names required' }]}
                             >
-                              <Input placeholder="01, 02, 03... (floor number will be added automatically)" />
+                              <Input placeholder="101, 102, 103..." />
                             </Form.Item>
                           </Col>
                           <Col span={4}>
@@ -390,16 +383,16 @@ const NewProject = () => {
                   <Col>
                     <Space>
                       <Tooltip title="Apply to All Towers">
-                        <Button 
-                          size="small" 
+                        <Button
+                          size="small"
                           icon={<CopyOutlined />}
                           onClick={() => applyTemplateToAllTowers(name)}
                         >
                           All
                         </Button>
                       </Tooltip>
-                      <Button 
-                        size="small" 
+                      <Button
+                        size="small"
                         onClick={() => setSelectedTemplate(name)}
                         type={selectedTemplate === name ? 'primary' : 'default'}
                       >
@@ -527,15 +520,15 @@ const NewProject = () => {
               <Tabs defaultActiveKey="0">
                 {projectData &&
                   generateTowerNames(projectData.Towers).map((towerName, towerIndex) => (
-                    <Tabs.TabPane 
+                    <Tabs.TabPane
                       tab={
                         <span>
                           {towerName}
                           {selectedTemplate && (
                             <Tooltip title={`Apply "${selectedTemplate}" to all floors`}>
-                              <Button 
-                                size="small" 
-                                type="link" 
+                              <Button
+                                size="small"
+                                type="link"
                                 icon={<CopyOutlined />}
                                 onClick={(e) => {
                                   e.stopPropagation();
@@ -545,7 +538,7 @@ const NewProject = () => {
                             </Tooltip>
                           )}
                         </span>
-                      } 
+                      }
                       key={towerIndex}
                     >
                       <Row gutter={[12, 12]}>
@@ -556,16 +549,16 @@ const NewProject = () => {
 
                           return (
                             <Col xs={24} md={12} lg={8} key={floorNumber}>
-                              <Card 
-                                size="small" 
+                              <Card
+                                size="small"
                                 title={
                                   <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
                                     <span>{floorName}</span>
                                     {selectedTemplate && (
                                       <Tooltip title={`Apply "${selectedTemplate}"`}>
-                                        <Button 
-                                          size="small" 
-                                          type="primary" 
+                                        <Button
+                                          size="small"
+                                          type="primary"
                                           ghost
                                           icon={<CopyOutlined />}
                                           onClick={() => applyTemplateToFloor(towerName, floorNumber, selectedTemplate)}
@@ -598,10 +591,6 @@ const NewProject = () => {
                                   </div>
                                 )}
                               </Card>
-                             <br />
-                             <Text type="secondary" style={{ fontSize: '11px' }}>
-                               Pattern: {template.units.map(u => `${u.count}×${u.type}`).join(', ')}
-                             </Text>
                             </Col>
                           );
                         })}
@@ -611,13 +600,13 @@ const NewProject = () => {
               </Tabs>
 
               <Divider />
-              
+
               <Space>
                 <Button onClick={prev}>Previous</Button>
-                <Button 
-                  type="primary" 
+                <Button
+                  type="primary"
                   onClick={prepareReviewData}
-                  disabled={Object.values(towerFloorData).every(tower => 
+                  disabled={Object.values(towerFloorData).every(tower =>
                     Object.values(tower).every(floor => floor.length === 0)
                   )}
                 >
@@ -637,10 +626,10 @@ const NewProject = () => {
               showIcon
               style={{ marginBottom: 16 }}
             />
-            
+
             <div style={{ textAlign: 'center', padding: '40px' }}>
-              <Button 
-                type="primary" 
+              <Button
+                type="primary"
                 size="large"
                 icon={<EyeOutlined />}
                 onClick={prepareReviewData}
@@ -701,9 +690,9 @@ const NewProject = () => {
       { title: 'Floor', dataIndex: 'Floors', key: 'floor' },
       { title: 'Unit Type', dataIndex: 'Units_Type', key: 'type' },
       { title: 'Count', dataIndex: 'Count', key: 'count' },
-      { 
-        title: 'Units', 
-        dataIndex: 'Units', 
+      {
+        title: 'Units',
+        dataIndex: 'Units',
         key: 'units',
         render: (units) => Array.isArray(units) ? units.join(', ') : units
       },
@@ -742,7 +731,7 @@ const NewProject = () => {
             Total Configurations: {finalProjectData?.length || 0}
           </Text>
         </div>
-        
+
         <Table
           columns={columns}
           dataSource={finalProjectData || []}

@@ -21,10 +21,10 @@ function Dashboard({ user }) {
 
   return (
     <div>
-      <Card size="small" style={{ marginBottom: 16 }} bodyStyle={{ padding: '16px' }}>
+      <Card size="small" style={{ marginBottom: 16 }} styles={{ body: { padding: '16px' } }}>
         <div style={{ textAlign: 'center' }}>
           <Title level={3} style={{ color: '#52c41a', margin: '8px 0' }}>
-            🎉 Welcome to DruvoBuilds!
+            🎉 Welcome to DruvoBefuilds!
           </Title>
           <Text style={{ fontSize: '14px', color: '#666' }}>
             You have successfully logged in as <strong>{user?.name}</strong>
@@ -80,7 +80,7 @@ function Dashboard({ user }) {
         </Col>
       </Row>
 
-      <Card title="User Information" size="small" style={{ marginBottom: 16 }} bodyStyle={{ padding: '12px' }}>
+      <Card title="User Information" size="small" style={{ marginBottom: 16 }} styles={{ body: { padding: '12px' } }}>
         <Row gutter={[12, 12]}>
           <Col xs={24} sm={12} md={6}>
             <Text strong>User ID:</Text>
@@ -111,7 +111,7 @@ function Dashboard({ user }) {
         </Row>
       </Card>
 
-      <Card title="Quick Actions" size="small" style={{ marginBottom: 16 }} bodyStyle={{ padding: '12px' }}>
+      <Card title="Quick Actions" size="small" style={{ marginBottom: 16 }} styles={{ body: { padding: '12px' } }}>
         <Row gutter={[12, 12]}>
           <Col xs={24} sm={12} md={6}>
             <Button
@@ -157,7 +157,7 @@ function Dashboard({ user }) {
         </Row>
       </Card>
 
-      <Card title="System Status" size="small" bodyStyle={{ padding: '12px' }}>
+      <Card title="System Status" size="small" styles={{ body: { padding: '12px' } }}>
         <div style={{ textAlign: 'center', padding: '12px' }}>
           <Text style={{ color: '#52c41a', fontSize: '14px' }}>
             ✅ All systems operational

@@ -1,5 +1,5 @@
 import React, { useState, useEffect } from 'react';
-import { Layout, Menu, Button, Avatar, Space, Typography, Tag, Drawer } from 'antd';
+import { Layout, Menu, Button, Avatar, Space, Typography, Drawer } from 'antd';
 import {
   DashboardOutlined,
   ProjectOutlined,
@@ -10,14 +10,14 @@ import {
   LogoutOutlined,
   UserOutlined,
   MenuOutlined,
-  PlusOutlined
+  PlusOutlined,
 } from '@ant-design/icons';
-import { useNavigate, useLocation } from 'react-router-dom';
+import { useNavigate, useLocation, Outlet } from 'react-router-dom';
 
 const { Header, Sider, Content } = Layout;
 const { Text } = Typography;
 
-const AppLayout = ({ children, user, onLogout }) => {
+const AppLayout = ({ user, onLogout }) => {
   const [collapsed, setCollapsed] = useState(false);
   const [mobileDrawerVisible, setMobileDrawerVisible] = useState(false);
   const [isMobile, setIsMobile] = useState(window.innerWidth <= 992);
@@ -38,57 +38,18 @@ const AppLayout = ({ children, user, onLogout }) => {
   }, []);
 
   const menuItems = [
-    {
-      key: '/dashboard',
-      icon: <DashboardOutlined />,
-      label: 'Dashboard',
-    },
-    {
-      key: '/projects',
-      icon: <ProjectOutlined />,
-      label: 'Projects',
-    },
-    {
-      key: '/new-project',
-      icon: <PlusOutlined />,
-      label: 'New Project',
-    },
-    {
-      key: '/tasks',
-      icon: <CheckSquareOutlined />,
-      label: 'Tasks',
-    },
-    {
-      key: '/reports',
-      icon: <BarChartOutlined />,
-      label: 'Reports',
-    },
-    {
-      key: '/timeline',
-      icon: <ClockCircleOutlined />,
-      label: 'Timeline',
-    },
-    {
-      key: '/users',
-      icon: <TeamOutlined />,
-      label: 'Users',
-    },
+    { key: '/dashboard', icon: <DashboardOutlined />, label: 'Dashboard' },
+    { key: '/projects', icon: <ProjectOutlined />, label: 'Projects' },
+    { key: '/new-project', icon: <PlusOutlined />, label: 'New Project' },
+    { key: '/tasks', icon: <CheckSquareOutlined />, label: 'Tasks' },
+    { key: '/reports', icon: <BarChartOutlined />, label: 'Reports' },
+    { key: '/timeline', icon: <ClockCircleOutlined />, label: 'Timeline' },
+    { key: '/users', icon: <TeamOutlined />, label: 'Users' },
   ];
 
   const handleMenuClick = ({ key }) => {
     navigate(key);
     setMobileDrawerVisible(false);
-  };
-
-  const getRoleColor = (role) => {
-    const colors = {
-      admin: 'red',
-      manager: 'blue',
-      executive: 'green',
-      incharge: 'orange',
-      user: 'default'
-    };
-    return colors[role] || 'default';
   };
 
   const SidebarContent = () => (
@@ -124,16 +85,18 @@ const AppLayout = ({ children, user, onLogout }) => {
           }}
           className="desktop-sidebar"
         >
-          <div style={{
-            height: 64,
-            display: 'flex',
-            alignItems: 'center',
-            justifyContent: 'center',
-            color: 'white',
-            fontSize: collapsed ? '16px' : '18px',
-            fontWeight: 'bold',
-            borderBottom: '1px solid #434343'
-          }}>
+          <div
+            style={{
+              height: 64,
+              display: 'flex',
+              alignItems: 'center',
+              justifyContent: 'center',
+              color: 'white',
+              fontSize: collapsed ? '16px' : '18px',
+              fontWeight: 'bold',
+              borderBottom: '1px solid #434343',
+            }}
+          >
             {collapsed ? 'DB' : 'DruvoBuilds'}
           </div>
           <SidebarContent />
@@ -148,7 +111,11 @@ const AppLayout = ({ children, user, onLogout }) => {
         open={mobileDrawerVisible}
         styles={{
           body: { padding: 0, backgroundColor: '#001529' },
-          header: { backgroundColor: '#001529', color: 'white', borderBottom: '1px solid #434343' }
+          header: {
+            backgroundColor: '#001529',
+            color: 'white',
+            borderBottom: '1px solid #434343',
+          },
         }}
         width={250}
         className="mobile-drawer"
@@ -157,17 +124,19 @@ const AppLayout = ({ children, user, onLogout }) => {
       </Drawer>
 
       <Layout style={{ marginLeft: !isMobile ? (collapsed ? 80 : 250) : 0 }}>
-        <Header style={{
-          padding: '0 24px',
-          background: '#fff',
-          display: 'flex',
-          justifyContent: 'space-between',
-          alignItems: 'center',
-          boxShadow: '0 2px 8px rgba(0,0,0,0.1)',
-          position: 'sticky',
-          top: 0,
-          zIndex: 99,
-        }}>
+        <Header
+          style={{
+            padding: '0 24px',
+            background: '#fff',
+            display: 'flex',
+            justifyContent: 'space-between',
+            alignItems: 'center',
+            boxShadow: '0 2px 8px rgba(0,0,0,0.1)',
+            position: 'sticky',
+            top: 0,
+            zIndex: 99,
+          }}
+        >
           <div style={{ display: 'flex', alignItems: 'center' }}>
             <Button
               type="text"
@@ -191,30 +160,24 @@ const AppLayout = ({ children, user, onLogout }) => {
             {!isMobile && (
               <Space direction="vertical" size={0}>
                 <Text strong>{user?.name}</Text>
-                {/* <Tag color={getRoleColor(user?.role)} size="small">
-                  {user?.role?.toUpperCase()}
-                </Tag> */}
               </Space>
             )}
-            <Button
-              type="text"
-              icon={<LogoutOutlined />}
-              onClick={onLogout}
-              danger
-            >
+            <Button type="text" icon={<LogoutOutlined />} onClick={onLogout} danger>
               {!isMobile ? 'Logout' : ''}
             </Button>
           </Space>
         </Header>
 
-        <Content style={{
-          margin: isMobile ? '12px' : '16px',
-          padding: isMobile ? '12px' : '16px',
-          background: '#f0f2f5',
-          minHeight: 'calc(100vh - 96px)',
-          overflow: 'auto'
-        }}>
-          {children}
+        <Content
+          style={{
+            margin: isMobile ? '12px' : '16px',
+            padding: isMobile ? '12px' : '16px',
+            background: '#f0f2f5',
+            minHeight: 'calc(100vh - 96px)',
+            overflow: 'auto',
+          }}
+        >
+          <Outlet /> {/* ✅ Children routes will render here */}
         </Content>
       </Layout>
     </Layout>

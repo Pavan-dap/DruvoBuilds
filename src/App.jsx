@@ -1,5 +1,9 @@
 import React, { useState, useEffect } from 'react';
-import { HashRouter as Router, Routes, Route, Navigate } from 'react-router-dom';
+import {
+  createHashRouter,
+  RouterProvider,
+  Navigate,
+} from 'react-router-dom';
 import { ConfigProvider } from 'antd';
 import LoginPage from './pages/LoginPage.jsx';
 import Dashboard from './pages/Dashboard.jsx';
@@ -50,12 +54,14 @@ function App() {
 
   if (loading) {
     return (
-      <div style={{
-        display: 'flex',
-        justifyContent: 'center',
-        alignItems: 'center',
-        height: '100vh'
-      }}>
+      <div
+        style={{
+          display: 'flex',
+          justifyContent: 'center',
+          alignItems: 'center',
+          height: '100vh',
+        }}
+      >
         Loading...
       </div>
     );
@@ -64,90 +70,53 @@ function App() {
   // Protected Route Component
   const ProtectedRoute = ({ children }) => {
     return user ? (
-      <AppLayout user={user} onLogout={handleLogout}>
-        {children}
-      </AppLayout>
+      children
     ) : (
       <Navigate to="/login" replace />
     );
   };
 
+  const router = createHashRouter(
+    [
+      {
+        path: '/login',
+        element: user ? (
+          <Navigate to="/dashboard" replace />
+        ) : (
+          <LoginPage onLogin={handleLogin} />
+        ),
+      },
+      {
+        path: '/',
+        element: (
+          <ProtectedRoute>
+            <AppLayout user={user} onLogout={handleLogout} />
+          </ProtectedRoute>
+        ),
+        children: [
+          { path: 'dashboard', element: <Dashboard user={user} /> },
+          { path: 'projects', element: <Projects /> },
+          { path: 'new-project', element: <NewProject /> },
+          { path: 'tasks', element: <Tasks /> },
+          { path: 'reports', element: <Reports /> },
+          { path: 'timeline', element: <Timeline /> },
+          { path: 'users', element: <Users /> },
+          // Default redirect
+          { index: true, element: <Navigate to="dashboard" replace /> },
+        ],
+      },
+    ],
+    {
+      future: {
+        v7_relativeSplatPath: true,
+        v7_startTransition: true,
+      },
+    }
+  );
+
   return (
     <ConfigProvider>
-      <Router>
-        <div className="App">
-          <Routes>
-            <Route
-              path="/login"
-              element={
-                user ?
-                <Navigate to="/dashboard" replace /> :
-                <LoginPage onLogin={handleLogin} />
-              }
-            />
-            <Route
-              path="/dashboard"
-              element={
-                <ProtectedRoute>
-                  <Dashboard user={user} />
-                </ProtectedRoute>
-              }
-            />
-            <Route
-              path="/projects"
-              element={
-                <ProtectedRoute>
-                  <Projects />
-                </ProtectedRoute>
-              }
-            />
-            <Route
-              path="/new-project"
-              element={
-                <ProtectedRoute>
-                  <NewProject />
-                </ProtectedRoute>
-              }
-            />
-            <Route
-              path="/tasks"
-              element={
-                <ProtectedRoute>
-                  <Tasks />
-                </ProtectedRoute>
-              }
-            />
-            <Route
-              path="/reports"
-              element={
-                <ProtectedRoute>
-                  <Reports />
-                </ProtectedRoute>
-              }
-            />
-            <Route
-              path="/timeline"
-              element={
-                <ProtectedRoute>
-                  <Timeline />
-                </ProtectedRoute>
-              }
-            />
-            <Route
-              path="/users"
-              element={
-                <ProtectedRoute>
-                  <Users />
-                </ProtectedRoute>
-              }
-            />
-            <Route
-              path="/"
-              element={<Navigate to={user ? "/dashboard" : "/login"} replace />}
-            />
-          </Routes>
-        </div>
-      </Router>
+      <RouterProvider router={router} />
     </ConfigProvider>
   );
 }

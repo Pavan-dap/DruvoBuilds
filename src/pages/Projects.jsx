@@ -14,13 +14,14 @@ import {
   Select,
   InputNumber,
   Popconfirm,
+  Tooltip,
 } from "antd";
 import { PlusOutlined } from "@ant-design/icons";
 import { useNavigate } from "react-router-dom";
 import axios from "axios";
 import { API_ENDPOINTS } from '../utils/config';
 
-const { Title } = Typography;
+const { Title, Text } = Typography;
 const { Panel } = Collapse;
 
 const Projects = () => {
@@ -31,6 +32,7 @@ const Projects = () => {
   const [selectedProjectName, setSelectedProjectName] = useState('');
   const [projectDetails, setProjectDetails] = useState([]);
   const [detailsLoading, setDetailsLoading] = useState(false);
+  const [savedTowers, setSavedTowers] = useState([]); // inside Projects component
 
   const navigate = useNavigate();
 
@@ -76,7 +78,7 @@ const Projects = () => {
 
       setProjectDetails({
         structure: compact,
-        requirements: res.data.Doors,
+        requirements: res.data.Required_Doors,
       });
     } catch (err) {
       console.error("Error fetching project details:", err);
@@ -100,95 +102,12 @@ const Projects = () => {
   ];
   const thicknessOptions = ["250mm", "200mm", "160mm", "100mm"];
 
-  // Inline Table Component for Door Requirements
-  const DoorRequirementTable = ({ towerName, projectId }) => {
-    const [saving, setSaving] = useState(false);
-
-    // Store data like: data[tower][doorType][thickness] = count
-    const [data, setData] = useState({
-      [towerName]: {},
-    });
-
-    const handleChange = (tower, doorType, thickness, value) => {
-      const newData = { ...data };
-      if (!newData[tower]) newData[tower] = {};
-      if (!newData[tower][doorType]) newData[tower][doorType] = {};
-      newData[tower][doorType][thickness] = value;
-      setData(newData);
-    };
-
-    const handleSave = async () => {
-      setSaving(true);
-      try {
-        const payload = doorTypes.map((doorType) => ({
-          Project_ID: projectId,
-          Towers: towerName,
-          Door_Type: doorType,
-          Door_Details: thicknessOptions.map((th) => ({
-            Door_Type_MM: th,
-            Count: data[towerName]?.[doorType]?.[th] || 0,
-          })),
-        }));
-
-        await axios.post(API_ENDPOINTS.PROJECT_REQUIREMENTS, payload);
-        message.success("Door requirements saved!");
-      } catch (err) {
-        console.error("Save failed", err);
-        message.error("Failed to save requirements");
-      } finally {
-        setSaving(false);
-      }
-    };
-
-    // Build columns dynamically
-    const columns = [
-      {
-        title: "Tower",
-        dataIndex: "tower",
-        key: "tower",
-        render: (text) => <b>{text}</b>,
-      },
-      ...doorTypes.map((doorType) => ({
-        title: doorType,
-        dataIndex: doorType,
-        key: doorType,
-        render: (_, record) => (
-          <div style={{ display: "flex", flexDirection: "column", gap: 4 }}>
-            {thicknessOptions.map((th) => (
-              <div key={th} style={{ display: "flex", alignItems: "center", gap: 4 }}>
-                <span style={{ width: 60 }}>{th}:</span>
-                <InputNumber
-                  min={0}
-                  style={{ width: 100 }}
-                  value={data[record.tower]?.[doorType]?.[th] || 0}
-                  onChange={(val) => handleChange(record.tower, doorType, th, val)}
-                />
-              </div>
-            ))}
-          </div>
-        ),
-      })),
-    ];
-
-    const rows = [{ key: towerName, tower: towerName }];
-
-    return (
-      <div>
-        <Table
-          dataSource={rows}
-          columns={columns}
-          pagination={false}
-          size="small"
-          bordered
-        />
-        <div style={{ textAlign: "right", marginTop: 16 }}>
-          <Button type="primary" onClick={handleSave} loading={saving}>
-            Save Requirements
-          </Button>
-        </div>
-      </div>
-    );
-  };
+  useEffect(() => {
+    if (projectDetails?.requirements?.Towers) {
+      const alreadySaved = projectDetails.requirements.Towers.map(t => t.Towers);
+      setSavedTowers(alreadySaved);
+    }
+  }, [projectDetails]);
 
   return (
     <div>
@@ -227,21 +146,21 @@ const Projects = () => {
                 hoverable
                 extra={<Tag color="blue">{project.Project_ID}</Tag>}
                 onClick={() => openModal(project.Project_ID, project.Project_Name)}
-                bodyStyle={{ padding: '12px' }}
+                styles={{ body: { padding: '12px' } }}
               >
                 <div style={{ fontSize: '12px', lineHeight: '1.4' }}>
-                <p style={{ margin: '4px 0' }}>
-                  <strong>Customer:</strong> {project.Customer_Name}
-                </p>
-                <p style={{ margin: '4px 0' }}>
-                  <strong>Location:</strong> {project.Location}
-                </p>
-                <p style={{ margin: '4px 0' }}>
-                  <strong>Contact:</strong> {project.Contact_No}
-                </p>
-                <p style={{ margin: '4px 0' }}>
-                  <strong>Email:</strong> {project.Mail_Id}
-                </p>
+                  <p style={{ margin: '4px 0' }}>
+                    <strong>Customer:</strong> {project.Customer_Name}
+                  </p>
+                  <p style={{ margin: '4px 0' }}>
+                    <strong>Location:</strong> {project.Location}
+                  </p>
+                  <p style={{ margin: '4px 0' }}>
+                    <strong>Contact:</strong> {project.Contact_No}
+                  </p>
+                  <p style={{ margin: '4px 0' }}>
+                    <strong>Email:</strong> {project.Mail_Id}
+                  </p>
                 </div>
               </Card>
             </Col>
@@ -265,35 +184,37 @@ const Projects = () => {
         ) : (
           <div>
             {/* Project Details */}
-            <Card 
-              title="🏢 Project Structure" 
-              size="small" 
+            <Card
+              title="🏢 Project Structure"
+              size="small"
               style={{ marginBottom: 16 }}
-              bodyStyle={{ padding: '12px' }}
+              styles={{ body: { padding: '12px' } }}
             >
               <Row gutter={[12, 12]}>
                 {projectDetails.structure &&
                   Object.entries(projectDetails.structure).map(
                     ([tower, floors], towerIndex) => (
                       <Col xs={24} md={12} lg={8} key={tower}>
-                        <Card 
-                          title={tower} 
+                        <Card
+                          title={tower}
                           size="small"
-                          style={{ 
+                          style={{
                             border: '1px solid #d9d9d9',
                             borderRadius: '6px'
                           }}
-                          headStyle={{ 
-                            backgroundColor: '#f5f5f5',
-                            minHeight: 'auto',
-                            padding: '8px 12px'
+                          styles={{
+                            body: { padding: '8px' },
+                            header: {
+                              backgroundColor: '#f5f5f5',
+                              minHeight: 'auto',
+                              padding: '8px 12px'
+                            }
                           }}
-                          bodyStyle={{ padding: '8px' }}
                         >
                           {Object.entries(floors).map(([floor, units], floorIndex) => (
                             <div key={floorIndex} style={{ marginBottom: '8px' }}>
-                              <div style={{ 
-                                fontWeight: 'bold', 
+                              <div style={{
+                                fontWeight: 'bold',
                                 fontSize: '12px',
                                 color: '#1890ff',
                                 marginBottom: '4px'
@@ -302,8 +223,8 @@ const Projects = () => {
                               </div>
                               <div style={{ paddingLeft: '12px' }}>
                                 {units.map((u, unitIndex) => (
-                                  <div key={unitIndex} style={{ 
-                                    fontSize: '11px', 
+                                  <div key={unitIndex} style={{
+                                    fontSize: '11px',
                                     marginBottom: '2px',
                                     display: 'flex',
                                     justifyContent: 'space-between'
@@ -325,68 +246,157 @@ const Projects = () => {
               </Row>
             </Card>
 
-            <Collapse size="small" style={{ marginTop: 16 }}>
-            {/* Required Doors */}
-            {/* Required Doors */}
-            <Panel header="Required Doors" key="required-doors">
-              {projectDetails.requirements?.Towers?.length > 0 ? (
-                <Table
-                  bordered
-                  pagination={false}
-                  rowKey={(record, index) => index}
-                  size="small"
-                  columns={[
-                    {
-                      title: "Towers",
-                      dataIndex: "Towers",
-                      key: "tower",
-                      fixed: "left",
-                    },
-                    ...doorTypes.map((doorType) => ({
-                      title: doorType,
-                      children: thicknessOptions.map((thickness) => ({
-                        title: thickness,
-                        dataIndex: `${doorType}-${thickness}`,
-                        key: `${doorType}-${thickness}`,
-                        render: (val) =>
-                          val ? (
-                            <div>
-                              <div><strong>Req:</strong> {val.Required}</div>
-                              <div><strong>Sup:</strong> {val.Supplied}</div>
-                            </div>
-                          ) : (
-                            "-"
-                          ),
-                      })),
-                    })),
-                  ]}
-                  dataSource={projectDetails.requirements.Towers.map((tower) => {
-                    const row = { Towers: tower.Towers };
-                    tower.Door_Types.forEach((doorType) => {
-                      doorType.Door_Details.forEach((dd) => {
-                        row[`${doorType.Door_Type}-${dd.Door_Type_MM}`] = dd.Doors;
-                      });
-                    });
-                    return row;
-                  })}
-                  scroll={{ x: "max-content" }}
-                />
-              ) : (
-                <>
-                  {projectDetails.structure &&
-                    Object.keys(projectDetails.structure).map((towerName) => (
-                      <div key={towerName} style={{ marginBottom: 24 }}>
-                        <Title level={5} style={{ margin: '8px 0' }}>{towerName}</Title>
-                        <DoorRequirementTable
-                          towerName={towerName}
-                          projectId={selectedProjectId}
-                        />
-                      </div>
-                    ))}
-                </>
-              )}
-            </Panel>
-            </Collapse>
+            <Collapse
+              size="small"
+              style={{ marginTop: 16 }}
+              items={[
+                {
+                  key: "required-doors",
+                  label: "Doors",
+                  children: (
+                    <Table
+                      bordered
+                      pagination={false}
+                      rowKey={(record) => record.Towers}
+                      size="small"
+                      columns={[
+                        {
+                          title: "Towers",
+                          dataIndex: "Towers",
+                          key: "tower",
+                          fixed: "left",
+                        },
+                        ...doorTypes.map((doorType) => ({
+                          title: doorType,
+                          children: thicknessOptions.map((thickness) => ({
+                            title: thickness,
+                            dataIndex: `${doorType}-${thickness}`,
+                            key: `${doorType}-${thickness}`,
+                            render: (val, record) => {
+                              const value = record.inputs?.[doorType]?.[thickness] || 0;
+                              const valObj = record.inputs?.[doorType]?.[thickness] || { required: 0, supplied: 0, installed: 0 };
+                              const isSaved = savedTowers.includes(record.Towers);
+
+                              if (isSaved) {
+                                return (
+                                  <Tooltip
+                                    color="white"
+                                    styles={{
+                                      body: {
+                                        color: "black",          // text color
+                                        border: "1px solid #d9d9d9",
+                                        borderRadius: "8px",
+                                        boxShadow: "0 2px 8px rgba(0, 0, 0, 0.15)",
+                                        padding: "8px 12px",
+                                        // cursor: 'pointer'
+                                      },
+                                    }}
+                                    title={
+                                      <div>
+                                        <div><span style={{ color: "red" }}>Required:</span> {valObj.required}</div>
+                                        <div><span style={{ color: "#1890ff" }}>Supplied:</span> {valObj.supplied}</div>
+                                        <div><span style={{ color: "#52c41a" }}>Installed:</span> {valObj.installed}</div>
+                                      </div>
+                                    }
+                                  >
+                                    <Text style={{ cursor: 'pointer' }}>
+                                      <span style={{ color: "red", fontWeight: 500 }}>{valObj.required}</span> /{" "}
+                                      <span style={{ color: "#1890ff", fontWeight: 500 }}>{valObj.supplied}</span> /{" "}
+                                      <span style={{ color: "#52c41a", fontWeight: 500 }}>{valObj.installed}</span>
+                                    </Text>
+                                  </Tooltip>
+                                );
+                              }
+                              return (
+                                <InputNumber
+                                  min={0}
+                                  style={{ width: 80 }}
+                                  value={valObj.Required}
+                                  disabled={isSaved} // 🔒 disable if saved
+                                  onChange={(newVal) => {
+                                    if (isSaved) return; // block changes
+                                    const newData = [...tableData];
+                                    const row = newData.find(r => r.Towers === record.Towers);
+                                    if (!row.inputs) row.inputs = {};
+                                    if (!row.inputs[doorType]) row.inputs[doorType] = {};
+                                    row.inputs[doorType][thickness] = newVal;
+                                    setTableData(newData);
+                                  }}
+                                />
+                              );
+                            },
+                          })),
+                        })),
+                        {
+                          title: "Action",
+                          key: "action",
+                          fixed: "right",
+                          render: (_, record) => {
+                            const isSaved = savedTowers.includes(record.Towers);
+                            return isSaved ? (
+                              <Tag color="green">✔ Saved</Tag>
+                            ) : (
+                              <Button
+                                type="primary"
+                                size="small"
+                                onClick={async () => {
+                                  try {
+                                    const payload = doorTypes.map((doorType) => ({
+                                      Project_ID: selectedProjectId,
+                                      Towers: record.Towers,
+                                      Door_Type: doorType,
+                                      Door_Details: thicknessOptions.map((th) => ({
+                                        Door_Type_MM: th,
+                                        Count: record.inputs?.[doorType]?.[th] || 0,
+                                      })),
+                                    }));
+                                    await axios.post(API_ENDPOINTS.PROJECT_REQUIREMENTS, payload);
+                                    message.success(`Saved requirements for ${record.Towers}`);
+                                    setSavedTowers(prev => [...prev, record.Towers]); // lock after save
+                                  } catch (err) {
+                                    message.error("Failed to save");
+                                  }
+                                }}
+                              >
+                                Save
+                              </Button>
+                            );
+                          },
+                        },
+                      ]}
+                      dataSource={(() => {
+                        // Merge all towers (structure + requirements) into table rows
+                        const allTowers = Object.keys(projectDetails.structure || {});
+                        const saved = projectDetails.requirements?.Towers || [];
+
+                        return allTowers.map((tower) => {
+                          const existing = saved.find((t) => t.Towers === tower);
+                          if (existing) {
+                            // Fill from backend
+                            const row = { Towers: tower, inputs: {} };
+                            existing.Door_Types.forEach((doorType) => {
+                              if (!row.inputs[doorType.Door_Type]) row.inputs[doorType.Door_Type] = {};
+                              doorType.Door_Details.forEach((dd) => {
+                                // row.inputs[doorType.Door_Type][dd.Door_Type_MM] = dd.Doors?.Required || 0;
+                                row.inputs[doorType.Door_Type][dd.Door_Type_MM] = {
+                                  required: Number(dd.Doors?.Required || 0),
+                                  supplied: Number(dd.Doors?.Supplied ?? 0),   // default 0 if missing
+                                  installed: Number(dd.Doors?.Installed ?? 0), // default 0 if missing
+                                };
+                              });
+                            });
+                            return row;
+                          }
+                          // Empty row for missing tower
+                          return { Towers: tower, inputs: {} };
+                        });
+                      })()}
+                      scroll={{ x: "max-content" }}
+                    />
+                  ),
+                },
+              ]}
+            />
           </div>
         )}
       </Modal>
