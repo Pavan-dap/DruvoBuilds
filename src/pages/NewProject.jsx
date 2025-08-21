@@ -1,34 +1,6 @@
 import React, { useState } from 'react';
-import {
-  Card,
-  Steps,
-  Form,
-  Input,
-  InputNumber,
-  Button,
-  Space,
-  Typography,
-  message,
-  Row,
-  Col,
-  Select,
-  Tabs,
-  Modal,
-  Table,
-  Divider,
-  Alert,
-  Tooltip,
-  Popconfirm
-} from 'antd';
-import {
-  ProjectOutlined,
-  SettingOutlined,
-  CheckCircleOutlined,
-  CopyOutlined,
-  EyeOutlined,
-  DeleteOutlined,
-  PlusOutlined
-} from '@ant-design/icons';
+import { Card, Steps, Form, Input, InputNumber, Button, Space, Typography, message, Row, Col, Select, Tabs, Modal, Table, Divider, Alert, Tooltip, Popconfirm } from 'antd';
+import { ProjectOutlined, SettingOutlined, CheckCircleOutlined, CopyOutlined, EyeOutlined, DeleteOutlined, PlusOutlined } from '@ant-design/icons';
 import { useNavigate } from 'react-router-dom';
 import axios from 'axios';
 import { API_ENDPOINTS } from '../utils/config';
@@ -36,7 +8,7 @@ import { API_ENDPOINTS } from '../utils/config';
 const { Title, Text } = Typography;
 const { Option } = Select;
 
-const NewProject = () => {
+const NewProject = ({ user }) => {
   const [currentStep, setCurrentStep] = useState(0);
   const [form] = Form.useForm();
   const [projectId, setProjectId] = useState(null);
@@ -49,7 +21,7 @@ const NewProject = () => {
   const [loading, setLoading] = useState(false);
   const navigate = useNavigate();
 
-  const unitTypes = ['3B3T', '3B2T', 'Office', 'Shop', 'Duplex'];
+  const unitTypes = ['3B3T', '3B2T', 'Office'];
 
   const steps = [
     { title: 'Basic Details', icon: <ProjectOutlined />, description: 'Project information' },
@@ -72,7 +44,8 @@ const NewProject = () => {
         Contact_No: parseInt(values.contactNo),
         Mail_Id: values.mailId,
         Towers: parseInt(values.towers),
-        Floors: parseInt(values.floors)
+        Floors: parseInt(values.floors),
+        Create_By: user.user_id
       };
 
       const response = await axios.post(API_ENDPOINTS.PROJECTS, payload);
@@ -724,6 +697,7 @@ const NewProject = () => {
             </Button>
           </Popconfirm>
         ]}
+        centered
       >
         <div style={{ marginBottom: 16 }}>
           <Title level={4}>Project: {projectData?.Project_Name}</Title>

@@ -15,6 +15,7 @@ import Timeline from './pages/Timeline.jsx';
 import Users from './pages/Users.jsx';
 import AppLayout from './components/Layout.jsx';
 import './App.css';
+import Supply from './pages/Supply.jsx';
 
 function App() {
   const [user, setUser] = useState(null);
@@ -96,7 +97,8 @@ function App() {
         children: [
           { path: 'dashboard', element: <Dashboard user={user} /> },
           { path: 'projects', element: <Projects /> },
-          { path: 'new-project', element: <NewProject /> },
+          { path: 'new-project', element: <NewProject user={user} /> },
+          { path: 'supply', element: <Supply /> },
           { path: 'tasks', element: <Tasks /> },
           { path: 'reports', element: <Reports /> },
           { path: 'timeline', element: <Timeline /> },

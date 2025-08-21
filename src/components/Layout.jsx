@@ -11,6 +11,7 @@ import {
   UserOutlined,
   MenuOutlined,
   PlusOutlined,
+  ShoppingCartOutlined,
 } from '@ant-design/icons';
 import { useNavigate, useLocation, Outlet } from 'react-router-dom';
 
@@ -41,6 +42,7 @@ const AppLayout = ({ user, onLogout }) => {
     { key: '/dashboard', icon: <DashboardOutlined />, label: 'Dashboard' },
     { key: '/projects', icon: <ProjectOutlined />, label: 'Projects' },
     { key: '/new-project', icon: <PlusOutlined />, label: 'New Project' },
+    { key: '/supply', icon: <ShoppingCartOutlined />, label: 'Supply' },
     { key: '/tasks', icon: <CheckSquareOutlined />, label: 'Tasks' },
     { key: '/reports', icon: <BarChartOutlined />, label: 'Reports' },
     { key: '/timeline', icon: <ClockCircleOutlined />, label: 'Timeline' },

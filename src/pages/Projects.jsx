@@ -1,28 +1,11 @@
 import React, { useEffect, useState } from "react";
-import {
-  Card,
-  Row,
-  Col,
-  Button,
-  Tag,
-  Typography,
-  Spin,
-  message,
-  Modal,
-  Collapse,
-  Table,
-  Select,
-  InputNumber,
-  Popconfirm,
-  Tooltip,
-} from "antd";
-import { PlusOutlined } from "@ant-design/icons";
+import { Card, Row, Col, Button, Tag, Typography, Spin, message, Modal, Collapse, Table, InputNumber, Tooltip, Select } from "antd";
+import { ExportOutlined, PlusOutlined, UserAddOutlined } from "@ant-design/icons";
 import { useNavigate } from "react-router-dom";
 import axios from "axios";
 import { API_ENDPOINTS } from '../utils/config';
-
+// API_ENDPOINTS.USERS_LIST
 const { Title, Text } = Typography;
-const { Panel } = Collapse;
 
 const Projects = () => {
   const [projects, setProjects] = useState([]);
@@ -33,6 +16,12 @@ const Projects = () => {
   const [projectDetails, setProjectDetails] = useState([]);
   const [detailsLoading, setDetailsLoading] = useState(false);
   const [savedTowers, setSavedTowers] = useState([]); // inside Projects component
+  const [activeKeys, setActiveKeys] = useState([]);
+
+  const [assignModalVisible, setAssignModalVisible] = useState(false);
+  const [selectedProject, setSelectedProject] = useState(null);
+  const [employees, setEmployees] = useState([]);
+  const [assigning, setAssigning] = useState(false);
 
   const navigate = useNavigate();
 
@@ -51,8 +40,24 @@ const Projects = () => {
   };
 
   useEffect(() => {
+    fetchEmployees();
     fetchProjects();
   }, []);
+
+  const fetchEmployees = async () => {
+    try {
+      const res = await axios.get(API_ENDPOINTS.USERS_LIST); // replace with actual endpoint
+      setEmployees(res.data || []);
+    } catch (err) {
+      console.error(err);
+      message.error("Failed to load employees");
+    }
+  };
+
+  const openAssignModal = (project) => {
+    setSelectedProject(project);
+    setAssignModalVisible(true);
+  };
 
   // Fetch project details by Project_ID
   const fetchProjectDetails = async (projectId) => {
@@ -88,6 +93,25 @@ const Projects = () => {
     }
   };
 
+  const handleAssign = async (empId) => {
+    if (!selectedProject) return;
+    try {
+      setAssigning(true);
+      await axios.patch(`${API_ENDPOINTS.PROJECTS}?Project_ID=${selectedProject.Project_ID}`, {
+        Handle_By: empId,
+      });
+      message.success("Handler assigned successfully");
+      setAssignModalVisible(false);
+      setSelectedProject(null);
+      fetchProjects(); // refresh projects
+    } catch (err) {
+      console.error(err);
+      message.error("Failed to assign handler");
+    } finally {
+      setAssigning(false);
+    }
+  };
+
   const openModal = (projectId, projectName) => {
     setSelectedProjectId(projectId);
     setSelectedProjectName(projectName);
@@ -101,6 +125,39 @@ const Projects = () => {
     "Home Office(900*2100mm)",
   ];
   const thicknessOptions = ["250mm", "200mm", "160mm", "100mm"];
+
+  const [tableData, setTableData] = useState([]);
+
+  useEffect(() => {
+    if (!projectDetails.structure) return;
+
+    const allTowers = Object.keys(projectDetails.structure);
+    const saved = projectDetails.requirements?.Towers || [];
+
+    const initialData = allTowers.map((tower) => {
+      const row = { Towers: tower, inputs: {} };
+
+      doorTypes.forEach((doorType) => {
+        row.inputs[doorType] = {};
+        thicknessOptions.forEach((th) => {
+          // If saved from backend, use that
+          const existingTower = saved.find(t => t.Towers === tower);
+          const existingDoorType = existingTower?.Door_Types.find(d => d.Door_Type === doorType);
+          const existingDetail = existingDoorType?.Door_Details.find(dd => dd.Door_Type_MM === th);
+
+          row.inputs[doorType][th] = {
+            required: Number(existingDetail?.Doors?.Required ?? 0),
+            supplied: Number(existingDetail?.Doors?.Supplied ?? 0),
+            installed: Number(existingDetail?.Doors?.Installed ?? 0),
+          };
+        });
+      });
+
+      return row;
+    });
+
+    setTableData(initialData);
+  }, [projectDetails]);
 
   useEffect(() => {
     if (projectDetails?.requirements?.Towers) {
@@ -144,8 +201,12 @@ const Projects = () => {
                 title={project.Project_Name}
                 size="small"
                 hoverable
-                extra={<Tag color="blue">{project.Project_ID}</Tag>}
-                onClick={() => openModal(project.Project_ID, project.Project_Name)}
+                extra={
+                  <>
+                    <Tag color="blue">{project.Project_ID}</Tag>
+                    <Button size="small" icon={<ExportOutlined />} onClick={() => openModal(project.Project_ID, project.Project_Name)} />
+                  </>
+                }
                 styles={{ body: { padding: '12px' } }}
               >
                 <div style={{ fontSize: '12px', lineHeight: '1.4' }}>
@@ -160,6 +221,19 @@ const Projects = () => {
                   </p>
                   <p style={{ margin: '4px 0' }}>
                     <strong>Email:</strong> {project.Mail_Id}
+                  </p>
+                  <p>
+                    <strong>Handle By:</strong>{" "}
+                    {project.Handle_By ? (
+                      project.Handle_By
+                    ) : (
+                      <Button
+                        size="small"
+                        icon={<UserAddOutlined />}
+                        onClick={() => openAssignModal(project)}
+                        danger
+                      />
+                    )}
                   </p>
                 </div>
               </Card>
@@ -189,60 +263,97 @@ const Projects = () => {
               size="small"
               style={{ marginBottom: 16 }}
               styles={{ body: { padding: '12px' } }}
+              extra={
+                <div>
+                  <Button
+                    size="small"
+                    onClick={() => {
+                      const allKeys = Object.keys(projectDetails.structure || {});
+                      setActiveKeys(allKeys); // expand all
+                    }}
+                    style={{ marginRight: 8 }}
+                  >
+                    Expand All
+                  </Button>
+                  <Button
+                    size="small"
+                    onClick={() => setActiveKeys([])} // collapse all
+                  >
+                    Collapse All
+                  </Button>
+                </div>
+              }
             >
               <Row gutter={[12, 12]}>
                 {projectDetails.structure &&
-                  Object.entries(projectDetails.structure).map(
-                    ([tower, floors], towerIndex) => (
+                  Object.entries(projectDetails.structure).map(([tower, floors]) => {
+                    const floorCount = Object.keys(floors).length;
+                    const unitCount = Object.values(floors).reduce(
+                      (sum, units) => sum + units.reduce((acc, u) => acc + Number(u.Count), 0),
+                      0
+                    );
+
+                    return (
                       <Col xs={24} md={12} lg={8} key={tower}>
-                        <Card
-                          title={tower}
-                          size="small"
-                          style={{
-                            border: '1px solid #d9d9d9',
-                            borderRadius: '6px'
-                          }}
-                          styles={{
-                            body: { padding: '8px' },
-                            header: {
-                              backgroundColor: '#f5f5f5',
-                              minHeight: 'auto',
-                              padding: '8px 12px'
+                        <Collapse
+                          activeKey={activeKeys.includes(tower) ? [tower] : []}
+                          onChange={(keys) => {
+                            if (keys.length) {
+                              setActiveKeys((prev) => [...prev, tower]);
+                            } else {
+                              setActiveKeys((prev) => prev.filter((k) => k !== tower));
                             }
                           }}
                         >
-                          {Object.entries(floors).map(([floor, units], floorIndex) => (
-                            <div key={floorIndex} style={{ marginBottom: '8px' }}>
-                              <div style={{
-                                fontWeight: 'bold',
-                                fontSize: '12px',
-                                color: '#1890ff',
-                                marginBottom: '4px'
-                              }}>
-                                📍 {floor}
+                          <Collapse.Panel
+                            key={tower}
+                            header={
+                              <div style={{ display: "flex", justifyContent: "space-between", width: "100%" }}>
+                                <span style={{ fontWeight: 600 }}>{tower}</span>
+                                <span style={{ fontSize: 12, color: "#888" }}>
+                                  {floorCount} Floors · {unitCount} Units
+                                </span>
                               </div>
-                              <div style={{ paddingLeft: '12px' }}>
-                                {units.map((u, unitIndex) => (
-                                  <div key={unitIndex} style={{
-                                    fontSize: '11px',
-                                    marginBottom: '2px',
-                                    display: 'flex',
-                                    justifyContent: 'space-between'
-                                  }}>
-                                    <span>
-                                      <Tag size="small" color="green">{u.Units_Type}</Tag>
-                                      {Array.isArray(u.Units) ? u.Units.join(", ") : u.Units}
-                                    </span>
-                                    <span style={{ color: '#666' }}>({u.Count})</span>
-                                  </div>
-                                ))}
+                            }
+                          >
+                            {Object.entries(floors).map(([floor, units], floorIndex) => (
+                              <div key={floorIndex} style={{ marginBottom: '8px' }}>
+                                <div
+                                  style={{
+                                    fontWeight: 'bold',
+                                    fontSize: '12px',
+                                    color: '#1890ff',
+                                    marginBottom: '4px'
+                                  }}
+                                >
+                                  📍 {floor}
+                                </div>
+                                <div style={{ paddingLeft: '12px' }}>
+                                  {units.map((u, unitIndex) => (
+                                    <div
+                                      key={unitIndex}
+                                      style={{
+                                        fontSize: '11px',
+                                        marginBottom: '2px',
+                                        display: 'flex',
+                                        justifyContent: 'space-between'
+                                      }}
+                                    >
+                                      <span>
+                                        <Tag size="small" color="green">{u.Units_Type}</Tag>
+                                        {Array.isArray(u.Units) ? u.Units.join(", ") : u.Units}
+                                      </span>
+                                      <span style={{ color: '#666' }}>({u.Count})</span>
+                                    </div>
+                                  ))}
+                                </div>
                               </div>
-                            </div>
-                          ))}
-                        </Card>
+                            ))}
+                          </Collapse.Panel>
+                        </Collapse>
                       </Col>
-                    )
-                  )}
+                    );
+                  })}
               </Row>
             </Card>
 
@@ -311,17 +422,37 @@ const Projects = () => {
                                 <InputNumber
                                   min={0}
                                   style={{ width: 80 }}
-                                  value={valObj.Required}
-                                  disabled={isSaved} // 🔒 disable if saved
+                                  value={valObj.required}
+                                  disabled={isSaved}
+                                  // onChange={(newVal) => {
+                                  //   if (isSaved) return;
+                                  //   const newData = [...tableData];
+                                  //   const row = newData.find(r => r.Towers === record.Towers);
+                                  //   row.inputs[doorType][thickness].required = newVal;
+                                  //   setTableData(newData);
+                                  // }}
                                   onChange={(newVal) => {
-                                    if (isSaved) return; // block changes
-                                    const newData = [...tableData];
-                                    const row = newData.find(r => r.Towers === record.Towers);
-                                    if (!row.inputs) row.inputs = {};
-                                    if (!row.inputs[doorType]) row.inputs[doorType] = {};
-                                    row.inputs[doorType][thickness] = newVal;
-                                    setTableData(newData);
-                                  }}
+                                    if (isSaved) return;
+                                    setTableData(prev => {
+                                      const newData = [...prev];
+                                      const rowIndex = newData.findIndex(r => r.Towers === record.Towers);
+                                      newData[rowIndex] = {
+                                        ...newData[rowIndex],
+                                        inputs: {
+                                          ...newData[rowIndex].inputs,
+                                          [doorType]: {
+                                            ...newData[rowIndex].inputs[doorType],
+                                            [thickness]: {
+                                              ...newData[rowIndex].inputs[doorType][thickness],
+                                              required: newVal
+                                            }
+                                          }
+                                        }
+                                      };
+                                      return newData;
+                                    });
+                                  }
+                                  }
                                 />
                               );
                             },
@@ -347,7 +478,9 @@ const Projects = () => {
                                       Door_Type: doorType,
                                       Door_Details: thicknessOptions.map((th) => ({
                                         Door_Type_MM: th,
-                                        Count: record.inputs?.[doorType]?.[th] || 0,
+                                        // Count: record.inputs?.[doorType]?.[th] || 0,
+                                        // Count: record.inputs?.[doorType]?.[th]?.required || 0
+                                        Count: record.inputs[doorType][th].required,
                                       })),
                                     }));
                                     await axios.post(API_ENDPOINTS.PROJECT_REQUIREMENTS, payload);
@@ -364,33 +497,34 @@ const Projects = () => {
                           },
                         },
                       ]}
-                      dataSource={(() => {
-                        // Merge all towers (structure + requirements) into table rows
-                        const allTowers = Object.keys(projectDetails.structure || {});
-                        const saved = projectDetails.requirements?.Towers || [];
+                      dataSource={tableData}
+                      // dataSource={(() => {
+                      //   // Merge all towers (structure + requirements) into table rows
+                      //   const allTowers = Object.keys(projectDetails.structure || {});
+                      //   const saved = projectDetails.requirements?.Towers || [];
 
-                        return allTowers.map((tower) => {
-                          const existing = saved.find((t) => t.Towers === tower);
-                          if (existing) {
-                            // Fill from backend
-                            const row = { Towers: tower, inputs: {} };
-                            existing.Door_Types.forEach((doorType) => {
-                              if (!row.inputs[doorType.Door_Type]) row.inputs[doorType.Door_Type] = {};
-                              doorType.Door_Details.forEach((dd) => {
-                                // row.inputs[doorType.Door_Type][dd.Door_Type_MM] = dd.Doors?.Required || 0;
-                                row.inputs[doorType.Door_Type][dd.Door_Type_MM] = {
-                                  required: Number(dd.Doors?.Required || 0),
-                                  supplied: Number(dd.Doors?.Supplied ?? 0),   // default 0 if missing
-                                  installed: Number(dd.Doors?.Installed ?? 0), // default 0 if missing
-                                };
-                              });
-                            });
-                            return row;
-                          }
-                          // Empty row for missing tower
-                          return { Towers: tower, inputs: {} };
-                        });
-                      })()}
+                      //   return allTowers.map((tower) => {
+                      //     const existing = saved.find((t) => t.Towers === tower);
+                      //     if (existing) {
+                      //       // Fill from backend
+                      //       const row = { Towers: tower, inputs: {} };
+                      //       existing.Door_Types.forEach((doorType) => {
+                      //         if (!row.inputs[doorType.Door_Type]) row.inputs[doorType.Door_Type] = {};
+                      //         doorType.Door_Details.forEach((dd) => {
+                      //           // row.inputs[doorType.Door_Type][dd.Door_Type_MM] = dd.Doors?.Required || 0;
+                      //           row.inputs[doorType.Door_Type][dd.Door_Type_MM] = {
+                      //             required: Number(dd.Doors?.Required || 0),
+                      //             supplied: Number(dd.Doors?.Supplied ?? 0),   // default 0 if missing
+                      //             installed: Number(dd.Doors?.Installed ?? 0), // default 0 if missing
+                      //           };
+                      //         });
+                      //       });
+                      //       return row;
+                      //     }
+                      //     // Empty row for missing tower
+                      //     return { Towers: tower, inputs: {} };
+                      //   });
+                      // })()}
                       scroll={{ x: "max-content" }}
                     />
                   ),
@@ -399,6 +533,26 @@ const Projects = () => {
             />
           </div>
         )}
+      </Modal>
+
+      <Modal
+        title={`Assign Handler - ${selectedProject?.Project_Name}`}
+        open={assignModalVisible}
+        onCancel={() => setAssignModalVisible(false)}
+        footer={null}
+      >
+        <Select
+          style={{ width: "100%" }}
+          placeholder="Select Employee"
+          loading={assigning}
+          onChange={(value) => handleAssign(value)}
+        >
+          {employees.map((emp) => (
+            <Select.Option key={emp.emp_id} value={emp.emp_id}>
+              {emp.name} ({emp.designation})
+            </Select.Option>
+          ))}
+        </Select>
       </Modal>
     </div>
   );
