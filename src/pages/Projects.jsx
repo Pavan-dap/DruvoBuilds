@@ -7,7 +7,7 @@ import { API_ENDPOINTS } from '../utils/config';
 // API_ENDPOINTS.USERS_LIST
 const { Title, Text } = Typography;
 
-const Projects = () => {
+const Projects = ({ user }) => {
   const [projects, setProjects] = useState([]);
   const [loading, setLoading] = useState(false);
   const [modalVisible, setModalVisible] = useState(false);
@@ -29,7 +29,7 @@ const Projects = () => {
   const fetchProjects = async () => {
     setLoading(true);
     try {
-      const res = await axios.get(API_ENDPOINTS.PROJECTS);
+      const res = await axios.get(API_ENDPOINTS.PROJECTS, { params: { Emp_No: user?.user_id } });
       setProjects(res.data || []);
     } catch (err) {
       console.error("Error fetching projects:", err);

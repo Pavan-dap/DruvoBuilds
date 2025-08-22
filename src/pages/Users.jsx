@@ -5,7 +5,7 @@ import axios from 'axios';
 import { API_ENDPOINTS } from '../utils/config';
 const { Title } = Typography;
 
-const Users = () => {
+const Users = ({ user }) => {
   const [users, setUsers] = useState([]);
   const [loading, setLoading] = useState(false);
   const [modalVisible, setModalVisible] = useState(false);

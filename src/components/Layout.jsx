@@ -43,6 +43,7 @@ const AppLayout = ({ user, onLogout }) => {
     { key: '/projects', icon: <ProjectOutlined />, label: 'Projects' },
     { key: '/new-project', icon: <PlusOutlined />, label: 'New Project' },
     { key: '/supply', icon: <ShoppingCartOutlined />, label: 'Supply' },
+    { key: '/installation', icon: <ShoppingCartOutlined />, label: 'Installation' },
     { key: '/tasks', icon: <CheckSquareOutlined />, label: 'Tasks' },
     { key: '/reports', icon: <BarChartOutlined />, label: 'Reports' },
     { key: '/timeline', icon: <ClockCircleOutlined />, label: 'Timeline' },
@@ -153,7 +154,7 @@ const AppLayout = ({ user, onLogout }) => {
               style={{ marginRight: 16 }}
             />
             <Text strong style={{ fontSize: '16px', color: '#1890ff' }}>
-              DruvoBuilds Dashboard
+              DruvoBuilds
             </Text>
           </div>
 

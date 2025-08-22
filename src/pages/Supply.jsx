@@ -9,12 +9,11 @@ import {
 } from "@ant-design/icons";
 import axios from "axios";
 
-const Supply = () => {
+const Supply = ({ user }) => {
     const [data, setData] = useState([]);
     const [loading, setLoading] = useState(false);
     const [modalVisible, setModalVisible] = useState(false);
     const [supplyDetails, setSupplyDetails] = useState(null);
-    console.log('supplyDetails', supplyDetails)
     const [modalLoading, setModalLoading] = useState(false);
 
     const [entryModalVisible, setEntryModalVisible] = useState(false);
@@ -27,6 +26,7 @@ const Supply = () => {
         "Home Office(900*2100mm)",
     ];
     const thicknessOptions = ["250mm", "200mm", "160mm", "100mm"];
+    const Type = ["Frames", "Shutters", "Hardwares"]
 
     useEffect(() => {
         fetchSupplyData();
@@ -35,10 +35,10 @@ const Supply = () => {
     const fetchSupplyData = async () => {
         try {
             setLoading(true);
-            const res = await fetch(API_ENDPOINTS.PROJECT_SUPPLY);
-            if (!res.ok) throw new Error("Failed to fetch supply data");
-            const result = await res.json();
-            setData(result);
+            const res = await axios.get(API_ENDPOINTS.PROJECT_SUPPLY, {
+                params: { Emp_No: user.user_id }
+            });
+            setData(res.data);
         } catch (error) {
             console.error(error);
             message.error("Error fetching supply data");
@@ -50,12 +50,10 @@ const Supply = () => {
     const fetchProjectDetails = async (projectId) => {
         try {
             setModalLoading(true);
-            const res = await fetch(
-                `${API_ENDPOINTS.PROJECT_SUPPLY}?Project_ID=${projectId}`
-            );
-            if (!res.ok) throw new Error("Failed to fetch project details");
-            const result = await res.json();
-            setSupplyDetails(result);
+            const res = await axios.get(API_ENDPOINTS.PROJECT_SUPPLY, {
+                params: { Project_ID: projectId }
+            });
+            setSupplyDetails(res.data);
             setModalVisible(true);
         } catch (error) {
             console.error(error);
@@ -66,12 +64,14 @@ const Supply = () => {
     };
 
     const openEntryModal = (tower) => {
-        // Initialize matrix for input
         const matrix = {};
         doorTypes.forEach(dt => {
             matrix[dt] = {};
             thicknessOptions.forEach(th => {
-                matrix[dt][th] = 0; // default value
+                matrix[dt][th] = {};
+                Type.forEach(tp => {
+                    matrix[dt][th][tp] = 0;  // each type starts with 0
+                });
             });
         });
         setEntryMatrix(matrix);
@@ -79,12 +79,15 @@ const Supply = () => {
         setEntryModalVisible(true);
     };
 
-    const handleEntryChange = (doorType, thickness, value) => {
+    const handleEntryChange = (doorType, thickness, type, value) => {
         setEntryMatrix(prev => ({
             ...prev,
             [doorType]: {
                 ...prev[doorType],
-                [thickness]: value
+                [thickness]: {
+                    ...prev[doorType][thickness],
+                    [type]: value
+                }
             }
         }));
     };
@@ -94,25 +97,34 @@ const Supply = () => {
             Project_ID: supplyDetails?.Doors?.Project_ID,
             Towers: currentTower.Towers,
             Door_Type: doorType,
-            Door_Details: Object.keys(entryMatrix[doorType]).map(thickness => ({
-                Door_Type_MM: thickness,
-                Count: entryMatrix[doorType][thickness] || 0
-            }))
+            Door_Details: Object.keys(entryMatrix[doorType]).flatMap(thickness =>
+                Object.keys(entryMatrix[doorType][thickness]).map(tp => ({
+                    Door_Type_MM: thickness,
+                    Type: tp,
+                    Count: entryMatrix[doorType][thickness][tp] || 0,
+                }))
+            ),
         }));
 
         try {
             await axios.post(API_ENDPOINTS.PROJECT_SUPPLY, postData);
-            message.success("Supply of doors is done");
-
-            // Close entry modal
+            message.success("Supply entry recorded!");
             setEntryModalVisible(false);
-
-            // Re-fetch project details to update table
             await fetchProjectDetails(supplyDetails?.Doors?.Project_ID);
         } catch (error) {
-            console.error("Error posting supply:", error);
+            console.error(error);
             message.error("Failed to submit supply data");
         }
+    };
+
+    const getRemainingByType = (details, type) => {
+        const required = Number(details.Doors?.Required || 0);
+
+        const totalSupplied = (details.Doors?.Supplied || [])
+            .filter(s => s.Type === type)
+            .reduce((sum, s) => sum + Number(s.Count || 0), 0);
+
+        return required - totalSupplied;
     };
 
     const getTotalSupplied = (details) => {
@@ -135,15 +147,22 @@ const Supply = () => {
             for (let th of thicknessOptions) {
                 const details = dtDetails.Door_Details.filter(d => d.Door_Type_MM === th) || [];
 
-                const required = details.reduce((sum, d) => sum + Number(d.Doors?.Required || 0), 0);
-                const supplied = getTotalSupplied(details)
+                for (let tp of Type) {
+                    const required = details.reduce((sum, d) => sum + Number(d.Doors?.Required || 0), 0);
+                    const supplied = details.reduce((sum, d) => {
+                        if (Array.isArray(d.Doors?.Supplied)) {
+                            return sum + d.Doors.Supplied.filter(s => s.Type === tp).reduce((s2, s) => s2 + Number(s.Count || 0), 0);
+                        }
+                        return sum;
+                    }, 0);
 
-                if (required - supplied > 0) {
-                    return false; // still pending supply
+                    if (required - supplied > 0) {
+                        return false; // this type still pending
+                    }
                 }
             }
         }
-        return true; // all fulfilled
+        return true;
     };
 
     const renderTowerTable = (tower) => {
@@ -170,8 +189,9 @@ const Supply = () => {
                         if (Array.isArray(d.Doors?.Supplied)) {
                             breakdownData.push(...d.Doors.Supplied.map(s => ({
                                 Date: s.Date,
+                                Type: s.Type || "General",
                                 Supplied: s.Count,
-                                key: s.Date + s.Count
+                                key: s.Date + s.Type + s.Count
                             })));
                         } else if (d.Doors?.Supplied || d.Doors?.Supplied === 0) {
                             breakdownData.push({
@@ -185,6 +205,7 @@ const Supply = () => {
                     // Columns for tooltip table
                     const tooltipColumns = [
                         { title: "Date", dataIndex: "Date", key: "Date" },
+                        { title: "Type", dataIndex: "Type", key: "Type" },
                         { title: "Supplied", dataIndex: "Supplied", key: "Supplied" }
                     ];
 
@@ -200,6 +221,7 @@ const Supply = () => {
                                             pagination={false}
                                             size="small"
                                             bordered
+                                            scroll={{ x: 'max-content' }}
                                         />
                                     }
                                 >
@@ -343,10 +365,9 @@ const Supply = () => {
                 }
             >
                 <Table
-                    dataSource={Object.keys(entryMatrix).map(doorType => ({
+                    dataSource={doorTypes.map(doorType => ({
                         key: doorType,
                         Door_Type: doorType,
-                        ...entryMatrix[doorType]
                     }))}
                     pagination={false}
                     bordered
@@ -359,25 +380,25 @@ const Supply = () => {
                             key={th}
                             render={(text, record) => {
                                 const dt = currentTower.Door_Types.find(d => d.Door_Type === record.Door_Type);
-                                const details = dt?.Door_Details.filter(d => d.Door_Type_MM === th) || [];
-                                const required = details.reduce((sum, d) => sum + Number(d.Doors?.Required || 0), 0);
-                                const supplied = getTotalSupplied(details)
+                                const detail = dt?.Door_Details.find(d => d.Door_Type_MM === th);
 
-                                const remaining = required - supplied;
-
-                                return (
-                                    <>
-                                        <InputNumber
-                                            min={0}
-                                            max={remaining}
-                                            value={entryMatrix[record.Door_Type][th]}
-                                            onChange={(val) => handleEntryChange(record.Door_Type, th, val)}
-                                            style={{ width: "80px", marginRight: 8 }}
-                                            readOnly={!remaining}
-                                        />
-                                        <span style={{ color: "#888" }}>Remaining: {remaining}</span>
-                                    </>
-                                );
+                                return Type.map(tp => {
+                                    const remaining = detail ? getRemainingByType(detail, tp) : 0;
+                                    return (
+                                        <div key={tp} style={{ marginBottom: 4 }}>
+                                            <b>{tp}:</b>{" "}
+                                            <InputNumber
+                                                min={0}
+                                                max={remaining}
+                                                value={entryMatrix[record.Door_Type][th][tp]}
+                                                onChange={(val) => handleEntryChange(record.Door_Type, th, tp, val)}
+                                                style={{ width: "80px", marginRight: 8 }}
+                                                readOnly={!remaining}
+                                            />
+                                            <span style={{ color: "#888" }}>Remaining: {remaining}</span>
+                                        </div>
+                                    );
+                                });
                             }}
                         />
                     ))}

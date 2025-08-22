@@ -16,6 +16,7 @@ import Users from './pages/Users.jsx';
 import AppLayout from './components/Layout.jsx';
 import './App.css';
 import Supply from './pages/Supply.jsx';
+import Installation from './pages/Installation.jsx';
 
 function App() {
   const [user, setUser] = useState(null);
@@ -96,13 +97,14 @@ function App() {
         ),
         children: [
           { path: 'dashboard', element: <Dashboard user={user} /> },
-          { path: 'projects', element: <Projects /> },
+          { path: 'projects', element: <Projects user={user} /> },
           { path: 'new-project', element: <NewProject user={user} /> },
-          { path: 'supply', element: <Supply /> },
-          { path: 'tasks', element: <Tasks /> },
-          { path: 'reports', element: <Reports /> },
-          { path: 'timeline', element: <Timeline /> },
-          { path: 'users', element: <Users /> },
+          { path: 'supply', element: <Supply user={user} /> },
+          { path: 'installation', element: <Installation user={user} /> },
+          { path: 'tasks', element: <Tasks user={user} /> },
+          { path: 'reports', element: <Reports user={user} /> },
+          { path: 'timeline', element: <Timeline user={user} /> },
+          { path: 'users', element: <Users user={user} /> },
           // Default redirect
           { index: true, element: <Navigate to="dashboard" replace /> },
         ],

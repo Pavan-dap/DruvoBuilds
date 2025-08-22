@@ -13,12 +13,16 @@ export const API_ENDPOINTS = {
   PROJECT_SUPPLY: `${BASE_URL}Supplied_Doors_View/`,
   PROJECT_HANDLE: `${BASE_URL}Project_Handlers_View/`,
 
+  // Tasks
+  TASKS_PROJECTS: `${BASE_URL}Tasks_View/`,
+  TASKS: `${BASE_URL}Tasks_View/`,
+  TASKS_DETAILS: `${BASE_URL}Tasks_Details_View/`,
+
   // Users
   USERS: `${BASE_URL}Users_View/`,
   USERS_LIST: `${BASE_URL}Employee_List/`,
 
   // Tasks
-  TASKS: `${BASE_URL}tasks/`,
   TASK_DETAILS: `${BASE_URL}task/details/`,
 
   // Reports
