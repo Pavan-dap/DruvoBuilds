@@ -35,97 +35,6 @@ dayjs.extend(weekOfYear);
 const { Title } = Typography;
 const { Option } = Select;
 
-// --- Mock Data ---
-const mockProjects = [
-  {
-    id: 1,
-    name: "Website Redesign",
-    startDate: "2025-08-01",
-    endDate: "2025-09-15",
-    progress: 60,
-    status: "in-progress",
-  },
-  {
-    id: 2,
-    name: "Mobile App Development",
-    startDate: "2025-08-10",
-    endDate: "2025-10-01",
-    progress: 30,
-    status: "planning",
-  },
-  {
-    id: 3,
-    name: "API Development",
-    startDate: "2025-09-01",
-    endDate: "2025-10-30",
-    progress: 15,
-    status: "in-progress",
-  },
-];
-
-const mockTasks = [
-  {
-    id: 101,
-    projectId: 1,
-    title: "UI Design",
-    createdDate: "2025-08-01",
-    dueDate: "2025-08-10",
-    progress: 100,
-    status: "completed",
-    priority: "high",
-  },
-  {
-    id: 102,
-    projectId: 1,
-    title: "Frontend Development",
-    createdDate: "2025-08-11",
-    dueDate: "2025-09-05",
-    progress: 50,
-    status: "in-progress",
-    priority: "medium",
-  },
-  {
-    id: 103,
-    projectId: 1,
-    title: "Backend Integration",
-    createdDate: "2025-09-06",
-    dueDate: "2025-09-15",
-    progress: 20,
-    status: "in-progress",
-    priority: "high",
-  },
-  {
-    id: 201,
-    projectId: 2,
-    title: "Requirement Gathering",
-    createdDate: "2025-08-10",
-    dueDate: "2025-08-20",
-    progress: 100,
-    status: "completed",
-    priority: "high",
-  },
-  {
-    id: 202,
-    projectId: 2,
-    title: "iOS App Development",
-    createdDate: "2025-08-21",
-    dueDate: "2025-09-25",
-    progress: 10,
-    status: "in-progress",
-    priority: "high",
-  },
-  {
-    id: 301,
-    projectId: 3,
-    title: "Database Design",
-    createdDate: "2025-09-01",
-    dueDate: "2025-09-10",
-    progress: 40,
-    status: "in-progress",
-    priority: "high",
-  },
-];
-
 const GanttChart = ({ user }) => {
   const ganttRef = useRef(null);
 
@@ -171,7 +80,7 @@ const GanttChart = ({ user }) => {
         title: t.Task_Name,
         createdDate: t.Created_At,
         dueDate: t.Due_Date,
-        progress: t.Progress || 0,
+        progress: t.Progress || t.Status === "Completed" ? 100 : 0,
         status: t.Status || "not-started",
         priority: t.Priority?.toLowerCase() || "medium",
       }));

@@ -196,7 +196,7 @@ const Projects = ({ user }) => {
   const getProjectStats = (project) => {
     const totalTasks = project.tasks?.length || 0;
     const completedTasks =
-      project.tasks?.filter((t) => t.Status === "completed").length || 0;
+      project.tasks?.filter((t) => t.Status === "Completed").length || 0;
     const percentage =
       totalTasks > 0 ? Math.round((completedTasks / totalTasks) * 100) : 0;
     return { totalTasks, completedTasks, percentage };
