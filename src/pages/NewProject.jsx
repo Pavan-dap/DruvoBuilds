@@ -1,9 +1,38 @@
-import React, { useState } from 'react';
-import { Card, Steps, Form, Input, InputNumber, Button, Space, Typography, message, Row, Col, Select, Tabs, Modal, Table, Divider, Alert, Tooltip, Popconfirm } from 'antd';
-import { ProjectOutlined, SettingOutlined, CheckCircleOutlined, CopyOutlined, EyeOutlined, DeleteOutlined, PlusOutlined } from '@ant-design/icons';
-import { useNavigate } from 'react-router-dom';
-import axios from 'axios';
-import { API_ENDPOINTS } from '../utils/config';
+import React, { useState } from "react";
+import {
+  Card,
+  Steps,
+  Form,
+  Input,
+  InputNumber,
+  Button,
+  Space,
+  Typography,
+  message,
+  Row,
+  Col,
+  Select,
+  Tabs,
+  Modal,
+  Table,
+  Divider,
+  Alert,
+  Tooltip,
+  Popconfirm,
+  DatePicker,
+} from "antd";
+import {
+  ProjectOutlined,
+  SettingOutlined,
+  CheckCircleOutlined,
+  CopyOutlined,
+  EyeOutlined,
+  DeleteOutlined,
+  PlusOutlined,
+} from "@ant-design/icons";
+import { useNavigate } from "react-router-dom";
+import axios from "axios";
+import { API_ENDPOINTS } from "../utils/config";
 
 const { Title, Text } = Typography;
 const { Option } = Select;
@@ -21,17 +50,33 @@ const NewProject = ({ user }) => {
   const [loading, setLoading] = useState(false);
   const navigate = useNavigate();
 
-  const unitTypes = ['3B3T', '3B2T', 'Office'];
+  const unitTypes = ["3B3T", "3B2T", "Office"];
 
   const steps = [
-    { title: 'Basic Details', icon: <ProjectOutlined />, description: 'Project information' },
-    { title: 'Floor Design', icon: <SettingOutlined />, description: 'Design floor templates' },
-    { title: 'Review & Submit', icon: <EyeOutlined />, description: 'Review and confirm' },
-    { title: 'Complete', icon: <CheckCircleOutlined />, description: 'Project created' }
+    {
+      title: "Basic Details",
+      icon: <ProjectOutlined />,
+      description: "Project information",
+    },
+    {
+      title: "Floor Design",
+      icon: <SettingOutlined />,
+      description: "Design floor templates",
+    },
+    {
+      title: "Review & Submit",
+      icon: <EyeOutlined />,
+      description: "Review and confirm",
+    },
+    {
+      title: "Complete",
+      icon: <CheckCircleOutlined />,
+      description: "Project created",
+    },
   ];
 
-  const next = () => setCurrentStep(prev => prev + 1);
-  const prev = () => setCurrentStep(prev => prev - 1);
+  const next = () => setCurrentStep((prev) => prev + 1);
+  const prev = () => setCurrentStep((prev) => prev - 1);
 
   // Step 1: Create basic project
   const handleBasicDetails = async (values) => {
@@ -45,7 +90,9 @@ const NewProject = ({ user }) => {
         Mail_Id: values.mailId,
         Towers: parseInt(values.towers),
         Floors: parseInt(values.floors),
-        Create_By: user.user_id
+        Create_By: user.user_id,
+        Start_Date: values?.Start_Date?.format("YYYY-MM-DD"),
+        End_Date: values?.End_Date?.format("YYYY-MM-DD"),
       };
 
       const response = await axios.post(API_ENDPOINTS.PROJECTS, payload);
@@ -57,7 +104,7 @@ const NewProject = ({ user }) => {
         // Initialize tower floor data structure
         const towerNames = generateTowerNames(payload.Towers);
         const initialTowerData = {};
-        towerNames.forEach(tower => {
+        towerNames.forEach((tower) => {
           initialTowerData[tower] = {};
           for (let floor = 1; floor <= payload.Floors; floor++) {
             initialTowerData[tower][floor] = [];
@@ -65,14 +112,14 @@ const NewProject = ({ user }) => {
         });
         setTowerFloorData(initialTowerData);
 
-        message.success('Project created successfully!');
+        message.success("Project created successfully!");
         next();
       } else {
-        message.error('Failed to create project - No Project ID returned');
+        message.error("Failed to create project - No Project ID returned");
       }
     } catch (error) {
-      console.error('Error creating project:', error);
-      message.error('Error creating project. Please try again.');
+      console.error("Error creating project:", error);
+      message.error("Error creating project. Please try again.");
     } finally {
       setLoading(false);
     }
@@ -90,19 +137,19 @@ const NewProject = ({ user }) => {
   // Create floor template
   const createFloorTemplate = (templateName, units) => {
     if (!templateName || !units || units.length === 0) {
-      message.error('Please provide template name and units');
+      message.error("Please provide template name and units");
       return;
     }
 
     const template = {
       name: templateName,
-      units: units.filter(unit => unit && unit.count > 0),
-      createdAt: new Date().toISOString()
+      units: units.filter((unit) => unit && unit.count > 0),
+      createdAt: new Date().toISOString(),
     };
 
-    setFloorTemplates(prev => ({
+    setFloorTemplates((prev) => ({
       ...prev,
-      [templateName]: template
+      [templateName]: template,
     }));
 
     message.success(`Floor template "${templateName}" created successfully!`);
@@ -113,13 +160,13 @@ const NewProject = ({ user }) => {
     const template = floorTemplates[templateName];
     if (!template) return;
 
-    const updatedUnits = template.units.map(unit => {
+    const updatedUnits = template.units.map((unit) => {
       const unitNumbers = unit.unit_names
-        ? unit.unit_names.split(",").map(u => u.trim())
+        ? unit.unit_names.split(",").map((u) => u.trim())
         : [];
 
       // Generate new numbers based on floor
-      const newUnitNumbers = unitNumbers.map(num => {
+      const newUnitNumbers = unitNumbers.map((num) => {
         // take last 2 digits of base unit (e.g. "01", "02", "03")
         const flatNo = num.slice(-2);
         return `${floor}${flatNo}`;
@@ -127,19 +174,21 @@ const NewProject = ({ user }) => {
 
       return {
         ...unit,
-        unit_names: newUnitNumbers.join(", ")
+        unit_names: newUnitNumbers.join(", "),
       };
     });
 
-    setTowerFloorData(prev => ({
+    setTowerFloorData((prev) => ({
       ...prev,
       [tower]: {
         ...prev[tower],
-        [floor]: updatedUnits
-      }
+        [floor]: updatedUnits,
+      },
     }));
 
-    message.success(`Template "${templateName}" applied to ${tower} Floor ${floor}`);
+    message.success(
+      `Template "${templateName}" applied to ${tower} Floor ${floor}`
+    );
   };
 
   // Apply template to all floors in tower
@@ -147,25 +196,27 @@ const NewProject = ({ user }) => {
     const template = floorTemplates[templateName];
     if (!template) return;
 
-    setTowerFloorData(prev => {
+    setTowerFloorData((prev) => {
       const newData = { ...prev };
-      Object.keys(newData[tower]).forEach(floor => {
+      Object.keys(newData[tower]).forEach((floor) => {
         const floorNumber = parseInt(floor);
-        newData[tower][floor] = template.units.map(unit => {
+        newData[tower][floor] = template.units.map((unit) => {
           const unitNumbers = unit.unit_names
-            ? unit.unit_names.split(',').map(u => u.trim())
+            ? unit.unit_names.split(",").map((u) => u.trim())
             : [];
-          const newUnitNumbers = unitNumbers.map(num => {
+          const newUnitNumbers = unitNumbers.map((num) => {
             const flatNo = num.slice(-2); // keep last 2 digits
             return `${floorNumber}${flatNo}`;
           });
-          return { ...unit, unit_names: newUnitNumbers.join(', ') };
+          return { ...unit, unit_names: newUnitNumbers.join(", ") };
         });
       });
       return newData;
     });
 
-    message.success(`Template "${templateName}" applied to all floors in ${tower}`);
+    message.success(
+      `Template "${templateName}" applied to all floors in ${tower}`
+    );
   };
 
   // Apply template to all towers
@@ -173,27 +224,29 @@ const NewProject = ({ user }) => {
     const template = floorTemplates[templateName];
     if (!template) return;
 
-    setTowerFloorData(prev => {
+    setTowerFloorData((prev) => {
       const newData = { ...prev };
-      Object.keys(newData).forEach(tower => {
-        Object.keys(newData[tower]).forEach(floor => {
+      Object.keys(newData).forEach((tower) => {
+        Object.keys(newData[tower]).forEach((floor) => {
           const floorNumber = parseInt(floor);
-          newData[tower][floor] = template.units.map(unit => {
+          newData[tower][floor] = template.units.map((unit) => {
             const unitNumbers = unit.unit_names
-              ? unit.unit_names.split(',').map(u => u.trim())
+              ? unit.unit_names.split(",").map((u) => u.trim())
               : [];
-            const newUnitNumbers = unitNumbers.map(num => {
+            const newUnitNumbers = unitNumbers.map((num) => {
               const flatNo = num.slice(-2);
               return `${floorNumber}${flatNo}`;
             });
-            return { ...unit, unit_names: newUnitNumbers.join(', ') };
+            return { ...unit, unit_names: newUnitNumbers.join(", ") };
           });
         });
       });
       return newData;
     });
 
-    message.success(`Template "${templateName}" applied to all towers and floors`);
+    message.success(
+      `Template "${templateName}" applied to all towers and floors`
+    );
   };
 
   // Prepare final data for review
@@ -203,14 +256,25 @@ const NewProject = ({ user }) => {
     Object.entries(towerFloorData).forEach(([tower, floors]) => {
       Object.entries(floors).forEach(([floor, units]) => {
         if (units && units.length > 0) {
-          units.forEach(unitEntry => {
+          units.forEach((unitEntry) => {
             if (unitEntry && unitEntry.count > 0) {
               reviewData.push({
                 Project_ID: projectId,
                 Towers: tower,
-                Floors: `${floor}${floor === '1' ? 'st' : floor === '2' ? 'nd' : floor === '3' ? 'rd' : 'th'} Floor`,
+                Floors: `${floor}${
+                  floor === "1"
+                    ? "st"
+                    : floor === "2"
+                    ? "nd"
+                    : floor === "3"
+                    ? "rd"
+                    : "th"
+                } Floor`,
                 Units: unitEntry.unit_names
-                  ? unitEntry.unit_names.split(",").map(u => u.trim()).filter(u => u !== "")
+                  ? unitEntry.unit_names
+                      .split(",")
+                      .map((u) => u.trim())
+                      .filter((u) => u !== "")
                   : [],
                 Units_Type: unitEntry.type,
                 Count: parseInt(unitEntry.count),
@@ -228,19 +292,19 @@ const NewProject = ({ user }) => {
   // Final submission
   const handleFinalSubmit = async () => {
     if (!finalProjectData || finalProjectData.length === 0) {
-      message.error('No data to submit');
+      message.error("No data to submit");
       return;
     }
 
     setLoading(true);
     try {
       await axios.post(API_ENDPOINTS.PROJECT_DETAILS, finalProjectData);
-      message.success('Project details saved successfully!');
+      message.success("Project details saved successfully!");
       setReviewModalVisible(false);
       next();
     } catch (error) {
-      console.error('Error saving project details:', error);
-      message.error('Error saving project details. Please try again.');
+      console.error("Error saving project details:", error);
+      message.error("Error saving project details. Please try again.");
     } finally {
       setLoading(false);
     }
@@ -249,18 +313,26 @@ const NewProject = ({ user }) => {
   // Floor Template Designer Component
   const FloorTemplateDesigner = () => {
     const [templateForm] = Form.useForm();
-    const [templateName, setTemplateName] = useState('');
+    const [templateName, setTemplateName] = useState("");
 
     const handleCreateTemplate = (values) => {
       const units = values.units || [];
       createFloorTemplate(templateName, units);
       templateForm.resetFields();
-      setTemplateName('');
+      setTemplateName("");
     };
 
     return (
-      <Card title="Create Floor Template" size="small" style={{ marginBottom: 16 }}>
-        <Form form={templateForm} onFinish={handleCreateTemplate} layout="vertical">
+      <Card
+        title="Create Floor Template"
+        size="small"
+        style={{ marginBottom: 16 }}
+      >
+        <Form
+          form={templateForm}
+          onFinish={handleCreateTemplate}
+          layout="vertical"
+        >
           <Row gutter={16}>
             <Col span={8}>
               <Form.Item label="Template Name">
@@ -281,21 +353,30 @@ const NewProject = ({ user }) => {
                           <Col span={6}>
                             <Form.Item
                               {...restField}
-                              name={[name, 'count']}
-                              rules={[{ required: true, message: 'Count required' }]}
+                              name={[name, "count"]}
+                              rules={[
+                                { required: true, message: "Count required" },
+                              ]}
                             >
-                              <InputNumber min={1} max={10} placeholder="Count" style={{ width: '100%' }} />
+                              <InputNumber
+                                min={1}
+                                max={10}
+                                placeholder="Count"
+                                style={{ width: "100%" }}
+                              />
                             </Form.Item>
                           </Col>
                           <Col span={6}>
                             <Form.Item
                               {...restField}
-                              name={[name, 'type']}
+                              name={[name, "type"]}
                               initialValue="3B3T"
                             >
                               <Select placeholder="Type">
                                 {unitTypes.map((type) => (
-                                  <Option key={type} value={type}>{type}</Option>
+                                  <Option key={type} value={type}>
+                                    {type}
+                                  </Option>
                                 ))}
                               </Select>
                             </Form.Item>
@@ -303,19 +384,34 @@ const NewProject = ({ user }) => {
                           <Col span={8}>
                             <Form.Item
                               {...restField}
-                              name={[name, 'unit_names']}
-                              rules={[{ required: true, message: 'Unit names required' }]}
+                              name={[name, "unit_names"]}
+                              rules={[
+                                {
+                                  required: true,
+                                  message: "Unit names required",
+                                },
+                              ]}
                             >
                               <Input placeholder="101, 102, 103..." />
                             </Form.Item>
                           </Col>
                           <Col span={4}>
-                            <Button danger onClick={() => remove(name)} size="small" icon={<DeleteOutlined />} />
+                            <Button
+                              danger
+                              onClick={() => remove(name)}
+                              size="small"
+                              icon={<DeleteOutlined />}
+                            />
                           </Col>
                         </Row>
                       ))}
                       <Form.Item>
-                        <Button type="dashed" onClick={() => add()} block icon={<PlusOutlined />}>
+                        <Button
+                          type="dashed"
+                          onClick={() => add()}
+                          block
+                          icon={<PlusOutlined />}
+                        >
                           Add Unit Type
                         </Button>
                       </Form.Item>
@@ -344,12 +440,12 @@ const NewProject = ({ user }) => {
         <Row gutter={[8, 8]}>
           {Object.entries(floorTemplates).map(([name, template]) => (
             <Col span={24} key={name}>
-              <Card size="small" style={{ backgroundColor: '#f9f9f9' }}>
+              <Card size="small" style={{ backgroundColor: "#f9f9f9" }}>
                 <Row justify="space-between" align="middle">
                   <Col>
                     <Text strong>{name}</Text>
                     <br />
-                    <Text type="secondary" style={{ fontSize: '12px' }}>
+                    <Text type="secondary" style={{ fontSize: "12px" }}>
                       {template.units.length} unit type(s)
                     </Text>
                   </Col>
@@ -367,7 +463,7 @@ const NewProject = ({ user }) => {
                       <Button
                         size="small"
                         onClick={() => setSelectedTemplate(name)}
-                        type={selectedTemplate === name ? 'primary' : 'default'}
+                        type={selectedTemplate === name ? "primary" : "default"}
                       >
                         Select
                       </Button>
@@ -393,7 +489,9 @@ const NewProject = ({ user }) => {
                   <Form.Item
                     label="Project Name"
                     name="projectName"
-                    rules={[{ required: true, message: 'Please enter project name' }]}
+                    rules={[
+                      { required: true, message: "Please enter project name" },
+                    ]}
                   >
                     <Input placeholder="e.g. Mithra Apartments" />
                   </Form.Item>
@@ -402,7 +500,9 @@ const NewProject = ({ user }) => {
                   <Form.Item
                     label="Customer Name"
                     name="customerName"
-                    rules={[{ required: true, message: 'Please enter customer name' }]}
+                    rules={[
+                      { required: true, message: "Please enter customer name" },
+                    ]}
                   >
                     <Input placeholder="e.g. Mani" />
                   </Form.Item>
@@ -414,7 +514,9 @@ const NewProject = ({ user }) => {
                   <Form.Item
                     label="Location"
                     name="location"
-                    rules={[{ required: true, message: 'Please enter location' }]}
+                    rules={[
+                      { required: true, message: "Please enter location" },
+                    ]}
                   >
                     <Input placeholder="e.g. Hyderabad" />
                   </Form.Item>
@@ -423,7 +525,12 @@ const NewProject = ({ user }) => {
                   <Form.Item
                     label="Contact Number"
                     name="contactNo"
-                    rules={[{ required: true, message: 'Please enter contact number' }]}
+                    rules={[
+                      {
+                        required: true,
+                        message: "Please enter contact number",
+                      },
+                    ]}
                   >
                     <Input placeholder="e.g. 9848032949" />
                   </Form.Item>
@@ -436,8 +543,8 @@ const NewProject = ({ user }) => {
                     label="Email Address"
                     name="mailId"
                     rules={[
-                      { required: true, message: 'Please enter email address' },
-                      { type: 'email', message: 'Please enter a valid email' }
+                      { required: true, message: "Please enter email address" },
+                      { type: "email", message: "Please enter a valid email" },
                     ]}
                   >
                     <Input placeholder="e.g. druvo.mani@gmail.com" />
@@ -447,25 +554,72 @@ const NewProject = ({ user }) => {
                   <Form.Item
                     label="Number of Towers"
                     name="towers"
-                    rules={[{ required: true, message: 'Please enter number of towers' }]}
+                    rules={[
+                      {
+                        required: true,
+                        message: "Please enter number of towers",
+                      },
+                    ]}
                   >
-                    <InputNumber min={1} max={26} placeholder="e.g. 2" style={{ width: '100%' }} />
+                    <InputNumber
+                      min={1}
+                      max={26}
+                      placeholder="e.g. 2"
+                      style={{ width: "100%" }}
+                    />
                   </Form.Item>
                 </Col>
                 <Col xs={24} md={6}>
                   <Form.Item
                     label="Floors (each tower)"
                     name="floors"
-                    rules={[{ required: true, message: 'Please enter floors' }]}
+                    rules={[{ required: true, message: "Please enter floors" }]}
                   >
-                    <InputNumber min={1} max={100} placeholder="e.g. 20" style={{ width: '100%' }} />
+                    <InputNumber
+                      min={1}
+                      max={100}
+                      placeholder="e.g. 20"
+                      style={{ width: "100%" }}
+                    />
+                  </Form.Item>
+                </Col>
+              </Row>
+
+              <Row gutter={[16, 16]}>
+                <Col xs={24} md={6}>
+                  <Form.Item
+                    label="Start Date"
+                    name="Start_Date"
+                    rules={[
+                      { required: true, message: "Please select start date!" },
+                    ]}
+                  >
+                    <DatePicker
+                      format={"YYYY-MM-DD"}
+                      style={{ width: "100%" }}
+                    />
+                  </Form.Item>
+                </Col>
+
+                <Col xs={24} md={6}>
+                  <Form.Item
+                    label="End Date"
+                    name="End_Date"
+                    rules={[
+                      { required: true, message: "Please select end date!" },
+                    ]}
+                  >
+                    <DatePicker
+                      format={"YYYY-MM-DD"}
+                      style={{ width: "100%" }}
+                    />
                   </Form.Item>
                 </Col>
               </Row>
 
               <Form.Item>
                 <Space>
-                  <Button onClick={() => navigate('/projects')}>Cancel</Button>
+                  <Button onClick={() => navigate("/projects")}>Cancel</Button>
                   <Button type="primary" htmlType="submit" loading={loading}>
                     Next: Design Floors
                   </Button>
@@ -492,84 +646,140 @@ const NewProject = ({ user }) => {
             <Card title="Apply Templates to Towers & Floors" size="small">
               <Tabs defaultActiveKey="0">
                 {projectData &&
-                  generateTowerNames(projectData.Towers).map((towerName, towerIndex) => (
-                    <Tabs.TabPane
-                      tab={
-                        <span>
-                          {towerName}
-                          {selectedTemplate && (
-                            <Tooltip title={`Apply "${selectedTemplate}" to all floors`}>
-                              <Button
-                                size="small"
-                                type="link"
-                                icon={<CopyOutlined />}
-                                onClick={(e) => {
-                                  e.stopPropagation();
-                                  applyTemplateToTower(towerName, selectedTemplate);
-                                }}
-                              />
-                            </Tooltip>
-                          )}
-                        </span>
-                      }
-                      key={towerIndex}
-                    >
-                      <Row gutter={[12, 12]}>
-                        {Array.from({ length: projectData.Floors }, (_, floorIndex) => {
-                          const floorNumber = floorIndex + 1;
-                          const floorName = `${floorNumber}${floorNumber === 1 ? 'st' : floorNumber === 2 ? 'nd' : floorNumber === 3 ? 'rd' : 'th'} Floor`;
-                          const currentFloorData = towerFloorData[towerName]?.[floorNumber] || [];
-
-                          return (
-                            <Col xs={24} md={12} lg={8} key={floorNumber}>
-                              <Card
-                                size="small"
-                                title={
-                                  <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
-                                    <span>{floorName}</span>
-                                    {selectedTemplate && (
-                                      <Tooltip title={`Apply "${selectedTemplate}"`}>
-                                        <Button
-                                          size="small"
-                                          type="primary"
-                                          ghost
-                                          icon={<CopyOutlined />}
-                                          onClick={() => applyTemplateToFloor(towerName, floorNumber, selectedTemplate)}
-                                        />
-                                      </Tooltip>
-                                    )}
-                                  </div>
-                                }
-                                style={{ minHeight: '200px' }}
+                  generateTowerNames(projectData.Towers).map(
+                    (towerName, towerIndex) => (
+                      <Tabs.TabPane
+                        tab={
+                          <span>
+                            {towerName}
+                            {selectedTemplate && (
+                              <Tooltip
+                                title={`Apply "${selectedTemplate}" to all floors`}
                               >
-                                {currentFloorData.length > 0 ? (
-                                  <div>
-                                    {currentFloorData.map((unit, idx) => (
-                                      <div key={idx} style={{ marginBottom: '8px', padding: '4px', backgroundColor: '#f0f0f0', borderRadius: '4px' }}>
-                                        <Text strong>{unit.type}</Text> - {unit.count} units
+                                <Button
+                                  size="small"
+                                  type="link"
+                                  icon={<CopyOutlined />}
+                                  onClick={(e) => {
+                                    e.stopPropagation();
+                                    applyTemplateToTower(
+                                      towerName,
+                                      selectedTemplate
+                                    );
+                                  }}
+                                />
+                              </Tooltip>
+                            )}
+                          </span>
+                        }
+                        key={towerIndex}
+                      >
+                        <Row gutter={[12, 12]}>
+                          {Array.from(
+                            { length: projectData.Floors },
+                            (_, floorIndex) => {
+                              const floorNumber = floorIndex + 1;
+                              const floorName = `${floorNumber}${
+                                floorNumber === 1
+                                  ? "st"
+                                  : floorNumber === 2
+                                  ? "nd"
+                                  : floorNumber === 3
+                                  ? "rd"
+                                  : "th"
+                              } Floor`;
+                              const currentFloorData =
+                                towerFloorData[towerName]?.[floorNumber] || [];
+
+                              return (
+                                <Col xs={24} md={12} lg={8} key={floorNumber}>
+                                  <Card
+                                    size="small"
+                                    title={
+                                      <div
+                                        style={{
+                                          display: "flex",
+                                          justifyContent: "space-between",
+                                          alignItems: "center",
+                                        }}
+                                      >
+                                        <span>{floorName}</span>
+                                        {selectedTemplate && (
+                                          <Tooltip
+                                            title={`Apply "${selectedTemplate}"`}
+                                          >
+                                            <Button
+                                              size="small"
+                                              type="primary"
+                                              ghost
+                                              icon={<CopyOutlined />}
+                                              onClick={() =>
+                                                applyTemplateToFloor(
+                                                  towerName,
+                                                  floorNumber,
+                                                  selectedTemplate
+                                                )
+                                              }
+                                            />
+                                          </Tooltip>
+                                        )}
+                                      </div>
+                                    }
+                                    style={{ minHeight: "200px" }}
+                                  >
+                                    {currentFloorData.length > 0 ? (
+                                      <div>
+                                        {currentFloorData.map((unit, idx) => (
+                                          <div
+                                            key={idx}
+                                            style={{
+                                              marginBottom: "8px",
+                                              padding: "4px",
+                                              backgroundColor: "#f0f0f0",
+                                              borderRadius: "4px",
+                                            }}
+                                          >
+                                            <Text strong>{unit.type}</Text> -{" "}
+                                            {unit.count} units
+                                            <br />
+                                            <Text
+                                              type="secondary"
+                                              style={{ fontSize: "12px" }}
+                                            >
+                                              {unit.unit_names}
+                                            </Text>
+                                          </div>
+                                        ))}
+                                      </div>
+                                    ) : (
+                                      <div
+                                        style={{
+                                          textAlign: "center",
+                                          color: "#999",
+                                          padding: "20px",
+                                        }}
+                                      >
+                                        <Text type="secondary">
+                                          No template applied
+                                        </Text>
                                         <br />
-                                        <Text type="secondary" style={{ fontSize: '12px' }}>
-                                          {unit.unit_names}
+                                        <Text
+                                          type="secondary"
+                                          style={{ fontSize: "12px" }}
+                                        >
+                                          Select a template and click apply
                                         </Text>
                                       </div>
-                                    ))}
-                                  </div>
-                                ) : (
-                                  <div style={{ textAlign: 'center', color: '#999', padding: '20px' }}>
-                                    <Text type="secondary">No template applied</Text>
-                                    <br />
-                                    <Text type="secondary" style={{ fontSize: '12px' }}>
-                                      Select a template and click apply
-                                    </Text>
-                                  </div>
-                                )}
-                              </Card>
-                            </Col>
-                          );
-                        })}
-                      </Row>
-                    </Tabs.TabPane>
-                  ))}
+                                    )}
+                                  </Card>
+                                </Col>
+                              );
+                            }
+                          )}
+                        </Row>
+                      </Tabs.TabPane>
+                    )
+                  )}
               </Tabs>
 
               <Divider />
@@ -579,8 +789,8 @@ const NewProject = ({ user }) => {
                 <Button
                   type="primary"
                   onClick={prepareReviewData}
-                  disabled={Object.values(towerFloorData).every(tower =>
-                    Object.values(tower).every(floor => floor.length === 0)
+                  disabled={Object.values(towerFloorData).every((tower) =>
+                    Object.values(tower).every((floor) => floor.length === 0)
                   )}
                 >
                   Review & Submit
@@ -600,7 +810,7 @@ const NewProject = ({ user }) => {
               style={{ marginBottom: 16 }}
             />
 
-            <div style={{ textAlign: 'center', padding: '40px' }}>
+            <div style={{ textAlign: "center", padding: "40px" }}>
               <Button
                 type="primary"
                 size="large"
@@ -615,21 +825,28 @@ const NewProject = ({ user }) => {
 
       case 3:
         return (
-          <Card size="small" style={{ textAlign: 'center', padding: '40px' }}>
-            <CheckCircleOutlined style={{ fontSize: '72px', color: '#52c41a', marginBottom: '24px' }} />
-            <Title level={3} style={{ color: '#52c41a', margin: '16px 0' }}>
+          <Card size="small" style={{ textAlign: "center", padding: "40px" }}>
+            <CheckCircleOutlined
+              style={{
+                fontSize: "72px",
+                color: "#52c41a",
+                marginBottom: "24px",
+              }}
+            />
+            <Title level={3} style={{ color: "#52c41a", margin: "16px 0" }}>
               Project Created Successfully!
             </Title>
-            <Text type="secondary" style={{ fontSize: '16px' }}>
+            <Text type="secondary" style={{ fontSize: "16px" }}>
               Project ID: <strong>{projectId}</strong>
             </Text>
             <br />
-            <Text type="secondary" style={{ fontSize: '16px' }}>
-              Your project has been created with {finalProjectData?.length || 0} floor configuration(s).
+            <Text type="secondary" style={{ fontSize: "16px" }}>
+              Your project has been created with {finalProjectData?.length || 0}{" "}
+              floor configuration(s).
             </Text>
-            <div style={{ marginTop: '24px' }}>
+            <div style={{ marginTop: "24px" }}>
               <Space size="large">
-                <Button onClick={() => navigate('/projects')}>
+                <Button onClick={() => navigate("/projects")}>
                   View All Projects
                 </Button>
                 <Button
@@ -659,15 +876,15 @@ const NewProject = ({ user }) => {
   // Review Modal
   const ReviewModal = () => {
     const columns = [
-      { title: 'Tower', dataIndex: 'Towers', key: 'tower' },
-      { title: 'Floor', dataIndex: 'Floors', key: 'floor' },
-      { title: 'Unit Type', dataIndex: 'Units_Type', key: 'type' },
-      { title: 'Count', dataIndex: 'Count', key: 'count' },
+      { title: "Tower", dataIndex: "Towers", key: "tower" },
+      { title: "Floor", dataIndex: "Floors", key: "floor" },
+      { title: "Unit Type", dataIndex: "Units_Type", key: "type" },
+      { title: "Count", dataIndex: "Count", key: "count" },
       {
-        title: 'Units',
-        dataIndex: 'Units',
-        key: 'units',
-        render: (units) => Array.isArray(units) ? units.join(', ') : units
+        title: "Units",
+        dataIndex: "Units",
+        key: "units",
+        render: (units) => (Array.isArray(units) ? units.join(", ") : units),
       },
     ];
 
@@ -695,7 +912,7 @@ const NewProject = ({ user }) => {
             <Button type="primary" loading={loading}>
               Submit Project
             </Button>
-          </Popconfirm>
+          </Popconfirm>,
         ]}
         centered
       >
@@ -709,7 +926,9 @@ const NewProject = ({ user }) => {
         <Table
           columns={columns}
           dataSource={finalProjectData || []}
-          rowKey={(record, index) => `${record.Towers}-${record.Floors}-${index}`}
+          rowKey={(record, index) =>
+            `${record.Towers}-${record.Floors}-${index}`
+          }
           pagination={{ pageSize: 10 }}
           size="small"
           scroll={{ x: 800 }}
@@ -719,15 +938,17 @@ const NewProject = ({ user }) => {
   };
 
   return (
-    <div style={{ maxWidth: '1400px', margin: '0 auto' }}>
-      <div style={{ marginBottom: '16px' }}>
-        <Title level={3} style={{ margin: 0 }}>Create New Project</Title>
+    <div style={{ maxWidth: "1400px", margin: "0 auto" }}>
+      <div style={{ marginBottom: "16px" }}>
+        <Title level={3} style={{ margin: 0 }}>
+          Create New Project
+        </Title>
         <Text type="secondary">
           Enhanced project creation with floor templates and data review.
         </Text>
       </div>
 
-      <Card size="small" style={{ marginBottom: '16px' }}>
+      <Card size="small" style={{ marginBottom: "16px" }}>
         <Steps current={currentStep} items={steps} />
       </Card>
 

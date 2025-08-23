@@ -1,176 +1,387 @@
-import React from 'react';
-import { Card, Button, Typography, Space, Tag, Row, Col, Statistic } from 'antd';
-import { ProjectOutlined, CheckSquareOutlined, TeamOutlined, BarChartOutlined } from '@ant-design/icons';
-import { useNavigate } from 'react-router-dom';
+import React, { useEffect, useState } from "react";
+import {
+  Row,
+  Col,
+  Card,
+  Statistic,
+  Progress,
+  Table,
+  Tag,
+  Typography,
+  Space,
+  List,
+  message,
+} from "antd";
+import {
+  ProjectOutlined,
+  CheckSquareOutlined,
+  UserOutlined,
+  CalendarOutlined,
+} from "@ant-design/icons";
+import {
+  BarChart,
+  Bar,
+  XAxis,
+  YAxis,
+  CartesianGrid,
+  Tooltip,
+  ResponsiveContainer,
+  PieChart,
+  Pie,
+  Cell,
+} from "recharts";
+import dayjs from "dayjs";
+import axios from "axios";
+import { API_ENDPOINTS } from "../utils/config";
 
 const { Title, Text } = Typography;
 
-function Dashboard({ user }) {
-  const navigate = useNavigate();
+const Dashboard = ({ user }) => {
+  const [projects, setProjects] = useState([]);
+  const [tasks, setTasks] = useState([]);
+  const [loading, setLoading] = useState(false);
 
-  const getRoleColor = (role) => {
-    const colors = {
-      admin: 'red',
-      manager: 'blue',
-      executive: 'green',
-      incharge: 'orange',
-      user: 'default'
-    };
-    return colors[role] || 'default';
+  useEffect(() => {
+    fetchDashboardData();
+  }, []);
+
+  const fetchDashboardData = async () => {
+    try {
+      setLoading(true);
+      const res = await axios.get(API_ENDPOINTS.DASHBOARD);
+      setProjects(res.data?.Total_Projects || []);
+      setTasks(res.data?.Tasks || []);
+    } catch (error) {
+      console.error(error);
+      message.error("Failed to fetch dashboard data");
+    } finally {
+      setLoading(false);
+    }
   };
+
+  // --- Normalize Status ---
+  const normalizeProjectStatus = (p) => {
+    if (p.Project_Status?.description) return p.Project_Status.description;
+    if (p.Project_Status?.progress === 100) return "completed";
+    if (p.Project_Status?.progress > 0) return "in-progress";
+    return "planning";
+  };
+
+  // --- Statistics ---
+  const totalProjects = projects.length;
+  const completedProjects = projects.filter(
+    (p) => normalizeProjectStatus(p) === "completed"
+  ).length;
+
+  const totalTasks = tasks.length;
+  const completedTasks = tasks.filter((t) => t.Status === "Completed").length;
+  const inProgressTasks = tasks.filter(
+    (t) => t.Status === "In Progress"
+  ).length;
+  const overdueTasks = tasks.filter(
+    (t) => dayjs(t.Due_Date).isBefore(dayjs()) && t.Status !== "Completed"
+  ).length;
+
+  // --- Chart data ---
+  const projectStatusData = [
+    {
+      name: "Planning",
+      value: projects.filter((p) => normalizeProjectStatus(p) === "planning")
+        .length,
+    },
+    {
+      name: "In Progress",
+      value: projects.filter((p) => normalizeProjectStatus(p) === "in-progress")
+        .length,
+    },
+    { name: "Completed", value: completedProjects },
+    {
+      name: "On Hold",
+      value: projects.filter((p) => normalizeProjectStatus(p) === "on-hold")
+        .length,
+    },
+  ];
+
+  const taskProgressData = projects.map((project) => ({
+    name:
+      project.Project_Name.length > 15
+        ? project.Project_Name.substring(0, 15) + "..."
+        : project.Project_Name,
+    progress: project.Project_Status?.progress || 0,
+    tasks: tasks.filter((t) => t.Project_ID === project.Project_ID).length,
+  }));
+
+  const COLORS = ["#faad14", "#1890ff", "#52c41a", "#f5222d"];
+
+  const upcomingTasks = tasks
+    .filter((t) => t.Status !== "Completed")
+    .sort((a, b) => new Date(a.Due_Date) - new Date(b.Due_Date))
+    .slice(0, 5);
+
+  // --- Tables ---
+  const projectColumns = [
+    {
+      title: "Project Name",
+      dataIndex: "Project_Name",
+      key: "Project_Name",
+      render: (text) => <Text strong>{text}</Text>,
+    },
+    {
+      title: "Progress",
+      dataIndex: ["Project_Status", "progress"],
+      key: "progress",
+      render: (progress) => (
+        <Progress
+          percent={progress}
+          size="small"
+          status={progress === 100 ? "success" : "active"}
+        />
+      ),
+    },
+    {
+      title: "Status",
+      key: "status",
+      render: (_, record) => {
+        const status = normalizeProjectStatus(record);
+        const colorMap = {
+          planning: "orange",
+          "in-progress": "blue",
+          completed: "green",
+          "on-hold": "red",
+        };
+        return <Tag color={colorMap[status]}>{status.toUpperCase()}</Tag>;
+      },
+    },
+    {
+      title: "Units",
+      dataIndex: "units",
+      key: "units",
+      render: (units) => units?.toLocaleString(),
+    },
+  ];
+
+  const taskColumns = [
+    { title: "Task Name", dataIndex: "Task_Name", key: "Task_Name" },
+    { title: "Project ID", dataIndex: "Project_ID", key: "Project_ID" },
+    {
+      title: "Priority",
+      dataIndex: "Priority",
+      key: "Priority",
+      render: (priority) => {
+        const color =
+          priority === "High"
+            ? "red"
+            : priority === "Medium"
+            ? "orange"
+            : "blue";
+        return <Tag color={color}>{priority}</Tag>;
+      },
+    },
+    {
+      title: "Status",
+      dataIndex: "Status",
+      key: "Status",
+      render: (status) => {
+        const color =
+          status === "Completed"
+            ? "green"
+            : status === "In Progress"
+            ? "blue"
+            : "orange";
+        return <Tag color={color}>{status}</Tag>;
+      },
+    },
+    {
+      title: "Due Date",
+      dataIndex: "Due_Date",
+      key: "Due_Date",
+      render: (date) => dayjs(date).format("MMM DD, YYYY"),
+    },
+    { title: "Assigned To", dataIndex: "Assigned_To", key: "Assigned_To" },
+  ];
 
   return (
     <div>
-      <Card size="small" style={{ marginBottom: 16 }} styles={{ body: { padding: '16px' } }}>
-        <div style={{ textAlign: 'center' }}>
-          <Title level={3} style={{ color: '#52c41a', margin: '8px 0' }}>
-            🎉 Welcome to DruvoBefuilds!
-          </Title>
-          <Text style={{ fontSize: '14px', color: '#666' }}>
-            You have successfully logged in as <strong>{user?.name}</strong>
-          </Text>
-          <div style={{ marginTop: 12 }}>
-            <Tag color={getRoleColor(user?.role)} size="small">
-              Role: {user?.role?.toUpperCase()}
-            </Tag>
-          </div>
-        </div>
-      </Card>
+      <Title level={3} style={{ marginBottom: 24 }}>
+        Welcome back, {user?.name}!
+      </Title>
 
-      <Row gutter={[12, 12]} style={{ marginBottom: 16 }}>
-        <Col xs={24} sm={12} lg={6}>
-          <Card size="small">
+      {/* Summary Stats */}
+      <Row gutter={[16, 16]} style={{ marginBottom: 24 }}>
+        <Col xs={12} sm={12} md={6}>
+          <Card size="small" loading={loading}>
             <Statistic
               title="Total Projects"
-              value={25}
-              prefix={<ProjectOutlined />}
-              valueStyle={{ color: '#3f8600' }}
+              value={totalProjects}
+              prefix={<ProjectOutlined style={{ color: "#1890ff" }} />}
+              suffix={
+                completedProjects > 0 ? `(${completedProjects} completed)` : ""
+              }
             />
           </Card>
         </Col>
-        <Col xs={24} sm={12} lg={6}>
-          <Card size="small">
+        <Col xs={12} sm={12} md={6}>
+          <Card size="small" loading={loading}>
             <Statistic
-              title="Active Tasks"
-              value={156}
-              prefix={<CheckSquareOutlined />}
-              valueStyle={{ color: '#1890ff' }}
+              title="Total Tasks"
+              value={totalTasks}
+              prefix={<CheckSquareOutlined style={{ color: "#52c41a" }} />}
+              suffix={`(${completedTasks} done)`}
             />
           </Card>
         </Col>
-        <Col xs={24} sm={12} lg={6}>
-          <Card size="small">
+        <Col xs={12} sm={12} md={6}>
+          <Card size="small" loading={loading}>
             <Statistic
-              title="Team Members"
-              value={42}
-              prefix={<TeamOutlined />}
-              valueStyle={{ color: '#722ed1' }}
+              title="In Progress"
+              value={inProgressTasks}
+              prefix={<UserOutlined style={{ color: "#faad14" }} />}
+              valueStyle={{ color: "#faad14" }}
             />
           </Card>
         </Col>
-        <Col xs={24} sm={12} lg={6}>
-          <Card size="small">
+        <Col xs={12} sm={12} md={6}>
+          <Card size="small" loading={loading}>
             <Statistic
-              title="Reports Generated"
-              value={18}
-              prefix={<BarChartOutlined />}
-              valueStyle={{ color: '#fa8c16' }}
+              title="Overdue Tasks"
+              value={overdueTasks}
+              prefix={<CalendarOutlined style={{ color: "#f5222d" }} />}
+              valueStyle={{ color: overdueTasks > 0 ? "#f5222d" : "#52c41a" }}
             />
           </Card>
         </Col>
       </Row>
 
-      <Card title="User Information" size="small" style={{ marginBottom: 16 }} styles={{ body: { padding: '12px' } }}>
-        <Row gutter={[12, 12]}>
-          <Col xs={24} sm={12} md={6}>
-            <Text strong>User ID:</Text>
-            <div style={{ marginTop: 2 }}>
-              <Text code>{user?.user_id}</Text>
+      {/* Charts */}
+      <Row gutter={[16, 16]} style={{ marginBottom: 24 }}>
+        <Col xs={24} lg={16}>
+          <Card
+            title="Project Progress Overview"
+            style={{ minHeight: 400 }}
+            loading={loading}
+          >
+            <ResponsiveContainer width="100%" height={300}>
+              <BarChart data={taskProgressData}>
+                <CartesianGrid strokeDasharray="3 3" />
+                <XAxis dataKey="name" />
+                <YAxis />
+                <Tooltip />
+                <Bar dataKey="progress" fill="#1890ff" />
+              </BarChart>
+            </ResponsiveContainer>
+          </Card>
+        </Col>
+        <Col xs={24} lg={8}>
+          <Card
+            title="Project Status Distribution"
+            style={{ minHeight: 400 }}
+            loading={loading}
+          >
+            <ResponsiveContainer width="100%" height={300}>
+              <PieChart>
+                <Pie
+                  data={projectStatusData}
+                  cx="50%"
+                  cy="50%"
+                  innerRadius={40}
+                  outerRadius={80}
+                  paddingAngle={5}
+                  dataKey="value"
+                >
+                  {projectStatusData.map((entry, index) => (
+                    <Cell
+                      key={`cell-${index}`}
+                      fill={COLORS[index % COLORS.length]}
+                    />
+                  ))}
+                </Pie>
+                <Tooltip />
+              </PieChart>
+            </ResponsiveContainer>
+            <div style={{ textAlign: "center", marginTop: 16 }}>
+              {projectStatusData.map((entry, index) => (
+                <Tag
+                  key={entry.name}
+                  color={COLORS[index % COLORS.length]}
+                  style={{ margin: "2px" }}
+                >
+                  {entry.name}: {entry.value}
+                </Tag>
+              ))}
             </div>
-          </Col>
-          <Col xs={24} sm={12} md={6}>
-            <Text strong>Name:</Text>
-            <div style={{ marginTop: 2 }}>
-              <Text>{user?.name}</Text>
-            </div>
-          </Col>
-          <Col xs={24} sm={12} md={6}>
-            <Text strong>Role:</Text>
-            <div style={{ marginTop: 2 }}>
-              <Tag color={getRoleColor(user?.role)} size="small">
-                {user?.role?.toUpperCase()}
-              </Tag>
-            </div>
-          </Col>
-          <Col xs={24} sm={12} md={6}>
-            <Text strong>Status:</Text>
-            <div style={{ marginTop: 2 }}>
-              <Tag color="green" size="small">{user?.status}</Tag>
-            </div>
-          </Col>
-        </Row>
-      </Card>
+          </Card>
+        </Col>
+      </Row>
 
-      <Card title="Quick Actions" size="small" style={{ marginBottom: 16 }} styles={{ body: { padding: '12px' } }}>
-        <Row gutter={[12, 12]}>
-          <Col xs={24} sm={12} md={6}>
-            <Button
-              type="primary"
-              block
+      {/* Projects + Tasks Tables */}
+      <Row gutter={[16, 16]}>
+        <Col xs={24} lg={16}>
+          <Card title="Active Projects" loading={loading}>
+            <Table
+              dataSource={projects}
+              columns={projectColumns}
+              pagination={{ pageSize: 5 }}
               size="small"
-              icon={<ProjectOutlined />}
-              onClick={() => navigate('/projects')}
-            >
-              Manage Projects
-            </Button>
-          </Col>
-          <Col xs={24} sm={12} md={6}>
-            <Button
-              block
-              size="small"
-              icon={<CheckSquareOutlined />}
-              onClick={() => navigate('/tasks')}
-            >
-              View Tasks
-            </Button>
-          </Col>
-          <Col xs={24} sm={12} md={6}>
-            <Button
-              block
-              size="small"
-              icon={<BarChartOutlined />}
-              onClick={() => navigate('/reports')}
-            >
-              Generate Reports
-            </Button>
-          </Col>
-          <Col xs={24} sm={12} md={6}>
-            <Button
-              block
-              size="small"
-              icon={<TeamOutlined />}
-              onClick={() => navigate('/users')}
-            >
-              User Management
-            </Button>
-          </Col>
-        </Row>
-      </Card>
-
-      <Card title="System Status" size="small" styles={{ body: { padding: '12px' } }}>
-        <div style={{ textAlign: 'center', padding: '12px' }}>
-          <Text style={{ color: '#52c41a', fontSize: '14px' }}>
-            ✅ All systems operational
-          </Text>
-          <div style={{ marginTop: 4 }}>
-            <Text type="secondary">
-              Responsive sidebar layout with HashRouter navigation
-            </Text>
-          </div>
-        </div>
-      </Card>
+              rowKey="id"
+              scroll={{ x: "max-content" }}
+            />
+          </Card>
+        </Col>
+        <Col xs={24} lg={8}>
+          <Space direction="vertical" style={{ width: "100%" }} size="large">
+            <Card title="Upcoming Tasks" size="small" loading={loading}>
+              <List
+                dataSource={upcomingTasks}
+                size="small"
+                renderItem={(task) => (
+                  <List.Item>
+                    <div style={{ width: "100%" }}>
+                      <div
+                        style={{
+                          display: "flex",
+                          justifyContent: "space-between",
+                          alignItems: "center",
+                          marginBottom: 4,
+                        }}
+                      >
+                        <Text style={{ fontSize: "13px" }} ellipsis>
+                          {task.Task_Name}
+                        </Text>
+                        <Tag
+                          color={
+                            task.Priority === "High"
+                              ? "red"
+                              : task.Priority === "Medium"
+                              ? "orange"
+                              : "blue"
+                          }
+                        >
+                          {task.Priority}
+                        </Tag>
+                      </div>
+                      <div style={{ fontSize: "11px", color: "#999" }}>
+                        Due: {dayjs(task.Due_Date).format("MMM DD, YYYY")}
+                      </div>
+                    </div>
+                  </List.Item>
+                )}
+              />
+            </Card>
+            <Card title="All Tasks" loading={loading}>
+              <Table
+                dataSource={tasks}
+                columns={taskColumns}
+                pagination={{ pageSize: 5 }}
+                size="small"
+                rowKey="id"
+                scroll={{ x: "max-content" }}
+              />
+            </Card>
+          </Space>
+        </Col>
+      </Row>
     </div>
   );
-}
+};
 
 export default Dashboard;

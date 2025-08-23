@@ -26,8 +26,14 @@ export const API_ENDPOINTS = {
   TASK_DETAILS: `${BASE_URL}task/details/`,
 
   // Reports
-  REPORTS: `${BASE_URL}reports/`,
+  REPORTS: `${BASE_URL}Reports_View/`,
   ANALYTICS: `${BASE_URL}analytics/`,
+
+  // Timeline Gantt Chart
+  GANTTCHART: `${BASE_URL}Gantt_Chat/`,
+
+  // Dashboard
+  DASHBOARD: `${BASE_URL}Dashboard_View/`,
 
 };
 
