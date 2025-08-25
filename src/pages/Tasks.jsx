@@ -4,6 +4,7 @@ import {
   Table,
   Button,
   Space,
+  Avatar,
   Tag,
   Typography,
   Modal,
@@ -13,7 +14,9 @@ import {
   DatePicker,
   message,
   Divider,
+  Collapse,
   Tooltip,
+  Progress
 } from "antd";
 import {
   PlusOutlined,
@@ -22,9 +25,10 @@ import {
   ShoppingCartOutlined,
 } from "@ant-design/icons";
 import axios from "axios";
+import dayjs from "dayjs";
 import { API_ENDPOINTS } from "../utils/config";
 
-const { Title } = Typography;
+const { Title, Text } = Typography;
 const { Option } = Select;
 
 const Tasks = ({ user }) => {
@@ -105,10 +109,10 @@ const Tasks = ({ user }) => {
   const handleSubmit = async () => {
     try {
       const values = await form.validateFields();
-      const [projectId, towerName, floors] = values.projectTower.split("|");
+      const [towerName, floors] = values.tower.split("|");
 
       const payload = {
-        Project_ID: projectId,
+        Project_ID: values.projectId,
         Assigned_By: user.user_id,
         Assigned_To: values.assignee,
         Towers: towerName,
@@ -195,6 +199,38 @@ const Tasks = ({ user }) => {
     return { supplied: suppliedData, installed: installedData };
   }, [selectedTask]);
 
+  const unitWiseInstalledData = useMemo(() => {
+    if (!selectedTask?.Installed_Doors) return [];
+
+    const groupedData = new Map();
+
+    selectedTask.Installed_Doors.forEach(item => {
+      // Create a unique key for each unit + door type combination
+      const key = `${item.Floors}-${item.Units}-${item.Door_Type}-${item.Door_Type_MM}`;
+
+      if (!groupedData.has(key)) {
+        groupedData.set(key, {
+          key: key,
+          Floors: item.Floors,
+          Units: item.Units,
+          Door_Type: item.Door_Type,
+          Door_Type_MM: item.Door_Type_MM,
+          Frames: 0,
+          Shutters: 0,
+          Hardwares: 0,
+        });
+      }
+
+      const entry = groupedData.get(key);
+      // Add the count to the correct component type column
+      if (entry.hasOwnProperty(item.Type)) {
+        entry[item.Type] += item.total_count;
+      }
+    });
+
+    return Array.from(groupedData.values());
+  }, [selectedTask]);
+
   // Supplied Matrix Columns
   const suppliedMatrixColumns = [
     {
@@ -217,7 +253,6 @@ const Tasks = ({ user }) => {
         dataIndex: `${door}-${thickness}`,
         key: `${door}-${thickness}`,
         align: "center",
-        width: 100,
         render: (data) => {
           const { supplied, installed } = data || { supplied: 0, installed: 0 };
           const pending = Math.max(0, supplied - installed);
@@ -231,6 +266,16 @@ const Tasks = ({ user }) => {
         },
       })),
     })),
+  ];
+
+  const unitWiseInstalledColumns = [
+    { title: 'Floor', dataIndex: 'Floors', key: 'Floors', sorter: (a, b) => parseInt(a.Floors) - parseInt(b.Floors), defaultSortOrder: 'ascend' },
+    { title: 'Unit', dataIndex: 'Units', key: 'Units', sorter: (a, b) => a.Units.localeCompare(b.Units) },
+    { title: 'Door Type', dataIndex: 'Door_Type', key: 'Door_Type' },
+    { title: 'Thickness', dataIndex: 'Door_Type_MM', key: 'Door_Type_MM', align: 'center' },
+    { title: 'Frames', dataIndex: 'Frames', key: 'Frames', align: 'center', render: (count) => count > 0 ? <Tag color="blue">{count}</Tag> : 0 },
+    { title: 'Shutters', dataIndex: 'Shutters', key: 'Shutters', align: 'center', render: (count) => count > 0 ? <Tag color="cyan">{count}</Tag> : 0 },
+    { title: 'Hardwares', dataIndex: 'Hardwares', key: 'Hardwares', align: 'center', render: (count) => count > 0 ? <Tag color="purple">{count}</Tag> : 0 },
   ];
 
   // Installed Matrix Columns
@@ -255,7 +300,6 @@ const Tasks = ({ user }) => {
         dataIndex: `${door}-${thickness}`,
         key: `${door}-${thickness}`,
         align: "center",
-        width: 100,
         render: (count, row) => {
           const units = (selectedTask?.Installed_Doors || [])
             .filter(
@@ -279,54 +323,142 @@ const Tasks = ({ user }) => {
   ];
 
   const columns = [
-    { title: "Task Name", dataIndex: "Task_Name", key: "Task_Name" },
-    { title: "Project ID", dataIndex: "Project_ID", key: "Project_ID" },
-    { title: "Tower", dataIndex: "Towers", key: "Towers" },
-    { title: "Assigned To", dataIndex: "Assigned_To", key: "Assigned_To" },
-    { title: "Assigned By", dataIndex: "Assigned_By", key: "Assigned_By" },
     {
-      title: "Priority",
-      dataIndex: "Priority",
-      key: "Priority",
-      render: (priority) => {
-        let color =
-          priority === "High"
-            ? "red"
-            : priority === "Medium"
-            ? "orange"
-            : "green";
-        return <Tag color={color}>{priority}</Tag>;
-      },
+      title: "Task",
+      dataIndex: "Task_Name",
+      key: "Task_Name",
+      render: (text, record) => (
+        <div>
+          <Text strong>{text}</Text>
+          <br />
+          <Text type="secondary">ID: {record.Task_ID}</Text>
+        </div>
+      )
+    },
+    {
+      title: "Location",
+      key: "location",
+      render: (_, record) => `${record.Project_ID} / ${record.Towers}`
+    },
+    {
+      title: "Progress",
+      dataIndex: "Tower_Task_Percentage",
+      key: "progress",
+      align: 'center',
+      render: (percent) => <Progress percent={percent} />
+    },
+    {
+      title: "Assigned To",
+      dataIndex: "Assigned_To",
+      key: "Assigned_To",
+      render: (empId) => {
+        const name = users.filter(u => u.emp_id === empId)[0]?.name || empId;
+        return (
+          <Space>
+            <Avatar size={'small'} style={{ backgroundColor: '#1890ff' }}>{name.charAt(0).toUpperCase()}</Avatar>
+            <span>{name}</span>
+          </Space>
+        );
+      }
     },
     {
       title: "Status",
       dataIndex: "Status",
       key: "Status",
+      align: 'center',
       render: (status) => {
-        let color = status === "Completed" ? "green" : "yellow";
+        const color = status === "Completed" ? "green" : status === "In Progress" ? "blue" : "yellow";
         return <Tag color={color}>{status}</Tag>;
       },
     },
-    { title: "Due Date", dataIndex: "Due_Date", key: "Due_Date" },
-    { title: "Created At", dataIndex: "Created_At", key: "Created_At" },
+    {
+      title: "Due Date",
+      dataIndex: "Due_Date",
+      key: "Due_Date",
+      render: (date, record) => {
+        const isOverdue = dayjs(date).isBefore(dayjs(), 'day') && record.Status !== 'Completed';
+        return (
+          <Text style={{ color: isOverdue ? 'red' : 'inherit', fontWeight: isOverdue ? 'bold' : 'normal' }}>
+            {dayjs(date).format("MMM DD, YYYY")}
+          </Text>
+        );
+      }
+    },
     {
       title: "Actions",
       key: "actions",
+      align: 'center',
       render: (_, record) => (
         <Space>
-          <Button
-            icon={<EyeOutlined />}
-            size="small"
-            onClick={() => handleViewDetails(record)}
-          />
-          <Button
-            type="primary"
-            size="small"
-            onClick={() => handleMarkComplete(record)}
-            icon={<CheckCircleOutlined />}
-            disabled={record.Status === "Completed"}
-          />
+          <Tooltip title="View Details">
+            <Button icon={<EyeOutlined />} size="small" onClick={() => handleViewDetails(record)} />
+          </Tooltip>
+          <Tooltip title="Mark as Complete">
+            <Button type="primary" size="small" onClick={() => handleMarkComplete(record)} icon={<CheckCircleOutlined />} disabled={record.Status === "Completed"} />
+          </Tooltip>
         </Space>
+      ),
+    },
+  ];
+
+  const collapseItems = [
+    {
+      key: '1',
+      label: (
+        <span>
+          <ShoppingCartOutlined style={{ marginRight: 8 }} />
+          Pending Installation
+        </span>
+      ),
+      children: (
+        <Table
+          rowKey="key"
+          columns={suppliedMatrixColumns}
+          dataSource={matrixData.supplied}
+          bordered
+          pagination={false}
+          scroll={{ x: 'max-content' }}
+          size="small"
+        />
+      ),
+    },
+    {
+      key: '2',
+      label: (
+        <span>
+          <CheckCircleOutlined style={{ marginRight: 8 }} />
+          Installed
+        </span>
+      ),
+      children: (
+        <Table
+          rowKey="key"
+          columns={installedMatrixColumns}
+          dataSource={matrixData.installed}
+          bordered
+          pagination={false}
+          scroll={{ x: 'max-content' }}
+          size="small"
+        />
+      ),
+    },
+    {
+      key: '3',
+      label: (
+        <span>
+          <CheckCircleOutlined style={{ marginRight: 8 }} />
+          Unit-wise Installation Details
+        </span>
+      ),
+      children: (
+        <Table
+          columns={unitWiseInstalledColumns}
+          dataSource={unitWiseInstalledData}
+          pagination={false}
+          bordered
+          size="small"
+          scroll={{ x: 'max-content', y: 400 }}
+        />
       ),
     },
   ];
@@ -355,7 +487,7 @@ const Tasks = ({ user }) => {
           loading={loading}
           rowKey={(record) => record.Task_ID || record.key}
           size="small"
-          scroll={{ x: 1000 }}
+          scroll={{ x: 'max-content' }}
         />
       </Card>
 
@@ -366,14 +498,20 @@ const Tasks = ({ user }) => {
         onCancel={() => setModalVisible(false)}
         onOk={handleSubmit}
         okText="Submit"
+        centered
       >
-        <Form form={form} layout="vertical">
+        <Form form={form} layout="vertical"
+          initialValues={{
+            priority: "Medium",
+            dueDate: dayjs().add(10, "days")
+          }}
+        >
           <Form.Item
             label="Title"
             name="title"
             rules={[{ required: true, message: "Please enter task title" }]}
           >
-            <Input />
+            <Input placeholder="Enter task title" />
           </Form.Item>
 
           <Form.Item
@@ -390,25 +528,54 @@ const Tasks = ({ user }) => {
             </Select>
           </Form.Item>
 
+          {/* Project Selection */}
           <Form.Item
-            label="Project & Tower"
-            name="projectTower"
-            rules={[{ required: true, message: "Please select project tower" }]}
+            label="Project"
+            name="projectId"
+            rules={[{ required: true, message: "Please select project" }]}
           >
-            <Select placeholder="Select Project Tower">
-              {projects.map((proj) =>
-                proj.Towers.map((tower) => (
-                  <Option
-                    key={`${proj.Project_ID}|${tower.Towers}|${tower.Floor_Count}`}
-                    value={`${proj.Project_ID}|${tower.Towers}|${tower.Floor_Count}`}
-                    disabled={tower.Assign_Tower_Status === "Completed"}
-                  >
-                    {proj.Project_Name} - {tower.Towers} (Floors:{" "}
-                    {tower.Floor_Count}, {tower.Assign_Tower_Status})
-                  </Option>
-                ))
-              )}
+            <Select
+              placeholder="Select Project"
+              onChange={() => form.setFieldsValue({ tower: undefined })}
+            >
+              {projects.map((proj) => (
+                <Option key={proj.Project_ID} value={proj.Project_ID}>
+                  {proj.Project_Name}
+                </Option>
+              ))}
             </Select>
+          </Form.Item>
+
+          {/* Tower Selection (depends on Project) */}
+          <Form.Item shouldUpdate={(prev, curr) => prev.projectId !== curr.projectId}>
+            {({ getFieldValue }) => {
+              const selectedProject = projects.find(
+                (proj) => proj.Project_ID === getFieldValue("projectId")
+              );
+
+              return (
+                <Form.Item
+                  label="Tower"
+                  name="tower"
+                  rules={[{ required: true, message: "Please select tower" }]}
+                >
+                  <Select
+                    placeholder="Select Tower"
+                    disabled={!selectedProject}
+                  >
+                    {selectedProject?.Towers.map((tower) => (
+                      <Option
+                        key={tower.Towers}
+                        value={`${tower.Towers}|${tower.Floor_Count}`}
+                        disabled={tower.Assign_Tower_Status === "Completed"}
+                      >
+                        {tower.Towers} (Floors: {tower.Floor_Count}, {tower.Assign_Tower_Status})
+                      </Option>
+                    ))}
+                  </Select>
+                </Form.Item>
+              );
+            }}
           </Form.Item>
 
           <Form.Item
@@ -440,50 +607,9 @@ const Tasks = ({ user }) => {
         onCancel={() => setViewModalVisible(false)}
         width="90%"
         style={{ top: 20 }}
-        centered
-        footer={
-          <Button onClick={() => setViewModalVisible(false)}>Close</Button>
-        }
+        footer={<Button onClick={() => setViewModalVisible(false)}>Close</Button>}
       >
-        <Card
-          size="small"
-          title={
-            <span>
-              <ShoppingCartOutlined style={{ marginRight: 8 }} />
-              Pending Installation
-            </span>
-          }
-        >
-          <Table
-            rowKey="key"
-            columns={suppliedMatrixColumns}
-            dataSource={matrixData.supplied}
-            bordered
-            pagination={false}
-            scroll={{ x: "max-content" }}
-            size="small"
-          />
-        </Card>
-        <Divider />
-        <Card
-          size="small"
-          title={
-            <span>
-              <CheckCircleOutlined style={{ marginRight: 8 }} />
-              Installed
-            </span>
-          }
-        >
-          <Table
-            rowKey="key"
-            columns={installedMatrixColumns}
-            dataSource={matrixData.installed}
-            bordered
-            pagination={false}
-            scroll={{ x: "max-content" }}
-            size="small"
-          />
-        </Card>
+        <Collapse accordion items={collapseItems} />
       </Modal>
     </>
   );

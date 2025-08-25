@@ -226,14 +226,14 @@ const Supply = ({ user }) => {
                                     }
                                 >
                                     <span style={{ cursor: "pointer" }}>
-                                        <span style={{ color: "blue" }}>{required}</span> /{" "}
-                                        <span style={{ color: "green" }}>{supplied}</span>
+                                        <span style={{ color: "green" }}>{supplied}</span> /{" "}
+                                        <span style={{ color: "blue" }}>{required}</span>
                                     </span>
                                 </Tooltip>
                             ) : (
                                 <>
-                                    <span style={{ color: "blue" }}>{required}</span> / {" "}
-                                    <span span style={{ color: "green" }}>{supplied}</span>
+                                    <span span style={{ color: "green" }}>{supplied}</span> / {" "}
+                                    <span style={{ color: "blue" }}>{required}</span>
                                 </>
                             )
                             }
@@ -321,6 +321,10 @@ const Supply = ({ user }) => {
                 footer={null}
                 width={1000}
                 centered
+                extra={
+                    <Tag color="red">Supplied / Required</Tag>
+                }
+
             >
                 {modalLoading ? (
                     <Spin fullscreen tip="Loading details..." />

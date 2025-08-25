@@ -77,19 +77,22 @@ const Reports = () => {
           projectCode: p.Project_ID,
           name: p.Project_Name,
           location: p.Location,
-          progress: p.Project_Status?.progress || 0,
+          progress: Math.round((p?.Progress || 0)), // convert to %
+          startDate: p.Start_Date ? dayjs(p.Start_Date).toISOString() : null,
+          endDate: p.End_Date ? dayjs(p.End_Date).toISOString() : null,
+          status: p.Project_Status || "ongoing",
         }));
 
         // Normalize Tasks
-        const normalizedTasks = (data.Tasks || []).map((t) => ({
-          id: t.id,
+        const normalizedTasks = (data.Tasks || []).map((t, idx) => ({
+          id: t.Task_ID || idx,
           projectCode: t.Project_ID,
           title: t.Task_Name,
           status: t.Status?.toLowerCase() || "not-started",
-          priority: t.Priority?.toLowerCase() || "medium",
-          progress: t.Status?.toLowerCase() === "completed" ? 100 : 0, // rough assumption
-          createdDate: t.Created_At,
-          dueDate: t.Due_Date,
+          priority: t?.Priority.toLowerCase(), // default since API doesn’t provide
+          progress: Math.round((t?.Progress || 0)), // convert to %
+          createdDate: t.Created_At ? dayjs(t.Created_At).toISOString() : null,
+          dueDate: t.Due_Date ? dayjs(t.Due_Date).toISOString() : null,
         }));
 
         setProjects(normalizedProjects);
@@ -141,8 +144,8 @@ const Reports = () => {
         selectedProject === "all"
           ? "All_Projects"
           : projects
-              .find((p) => p.id === selectedProject)
-              ?.name?.replace(/\s+/g, "_") || "Unknown_Project";
+            .find((p) => p.id === selectedProject)
+            ?.name?.replace(/\s+/g, "_") || "Unknown_Project";
       const fileName = `${projectName}_Report_${dayjs().format(
         "YYYY-MM-DD"
       )}.pdf`;
@@ -407,8 +410,8 @@ const Reports = () => {
                   completionRate > 70
                     ? "#52c41a"
                     : completionRate > 40
-                    ? "#faad14"
-                    : "#f5222d",
+                      ? "#faad14"
+                      : "#f5222d",
               }}
             />
           </Card>
@@ -508,8 +511,8 @@ const Reports = () => {
       reportType,
       dateRange: dateRange
         ? `${dateRange[0].format("YYYY-MM-DD")} to ${dateRange[1].format(
-            "YYYY-MM-DD"
-          )}`
+          "YYYY-MM-DD"
+        )}`
         : "All time",
       project:
         selectedProject === "all"

@@ -1,15 +1,6 @@
 import React, { useEffect, useState, useMemo } from "react";
 import { API_ENDPOINTS } from "../utils/config";
-import {
-  message,
-  Table,
-  Tag,
-  Button,
-  Modal,
-  Card,
-  Divider,
-  Tooltip,
-} from "antd";
+import { message, Table, Tag, Button, Modal, Card, Divider, Tooltip } from "antd";
 import { CheckCircleOutlined, ShoppingCartOutlined } from "@ant-design/icons";
 import axios from "axios";
 import InstallationModal from "./InstallationModal";
@@ -63,14 +54,65 @@ const Installation = ({ user }) => {
     setModalVisible(true);
   };
 
+  const getUnitStatus = (doorType, thickness, type) => {
+    if (!selectedDoorsTask) return [];
+
+    const unitsList = [];
+
+    selectedDoorsTask.Floors_Info.forEach((floorInfo) => {
+      floorInfo.units.forEach((unitGroup) => {
+        unitGroup.units.forEach((unit) => {
+          // Count installed for this unit
+          const installed = selectedDoorsTask.Installed_Doors.filter(
+            (d) =>
+              d.Door_Type === doorType &&
+              d.Door_Type_MM === thickness &&
+              d.Type === type &&
+              d.Units === unit
+          );
+
+          const installedCount = installed.reduce((acc, d) => acc + d.total_count, 0);
+
+          unitsList.push({
+            floor: floorInfo.floor,
+            unit,
+            installedCount,
+            components: installed.map((d) => d.Type),
+          });
+        });
+      });
+    });
+
+    return unitsList;
+  };
+
+
   // Handle click on a count in the matrix to open the installation modal
   const handleCountClick = (doorType, thickness, type) => {
     if (!selectedDoorsTask) return;
 
+    const unitsStatus = getUnitStatus(doorType, thickness, type);
+
+    // Filter units where we can still install
+    const availableUnits = unitsStatus.filter((u) => {
+      let maxAllowed = 1; // Default for Main Door
+      if (doorType.includes("Bedroom Door") || doorType.includes("Home Office")) {
+        maxAllowed = 3;
+      }
+
+      return u.installedCount < maxAllowed;
+    });
+
+    if (availableUnits.length === 0) {
+      message.warning(`All units for ${doorType} are already installed.`);
+      return;
+    }
+
     setPrefillData({
       doorType,
       thickness,
-      types: [type], // Pre-select the part that was clicked
+      types: [type],
+      unitsStatus: availableUnits, // pass to modal to show list
     });
     setInstallModalVisible(true);
   };
@@ -185,7 +227,6 @@ const Installation = ({ user }) => {
         dataIndex: `${door}-${thickness}`,
         key: `${door}-${thickness}`,
         align: "center",
-        width: 100,
         onHeaderCell: () => ({
           style: { backgroundColor: doorColors[door] || "#fafafa" },
         }),
@@ -230,7 +271,6 @@ const Installation = ({ user }) => {
         dataIndex: `${door}-${thickness}`,
         key: `${door}-${thickness}`,
         align: "center",
-        width: 100,
         onHeaderCell: () => ({
           style: { backgroundColor: doorColors[door] || "#fafafa" },
         }),
@@ -257,7 +297,7 @@ const Installation = ({ user }) => {
   ];
 
   return (
-    <div style={{ padding: "24px" }}>
+    <div>
       <h2>Installation Tasks</h2>
       <Table
         rowKey="Task_ID"
@@ -272,8 +312,7 @@ const Installation = ({ user }) => {
         title={`Doors for Task: ${selectedDoorsTask?.Task_ID}`}
         open={modalVisible}
         onCancel={() => setModalVisible(false)}
-        width="90%"
-        style={{ top: 20 }}
+        width={1000}
         centered
         footer={<Button onClick={() => setModalVisible(false)}>Close</Button>}
       >

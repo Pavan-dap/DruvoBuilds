@@ -31,17 +31,21 @@ const InstallationModal = ({
 
   // Effect to reset state when the modal is closed or prefill data changes
   useEffect(() => {
-    if (visible) {
-      // When modal opens, apply the prefill data (door type, thickness, and the specific part clicked)
-      if (prefillData) {
-        setUnitData(prefillData);
-      }
-    } else {
-      // Clear state when modal closes
+    if (!visible) {
       setSelectedUnits([]);
       setUnitData({});
+    } else if (prefillData) {
+      setUnitData(prefillData);
     }
   }, [visible, prefillData]);
+
+  const isDoorTypeDisabled = (dt, installedInfo, isOfficeUnit) => {
+    if ((isOfficeUnit && dt.includes("Bedroom")) || (!isOfficeUnit && dt.includes("Office"))) return true;
+    if (dt.includes("Main") && installedInfo.completeMain >= 1) return true;
+    if (dt.includes("Bedroom") && installedInfo.startedBedroomSets >= 3) return true;
+    if (dt.includes("Office") && installedInfo.startedOfficeSets >= 3) return true;
+    return false;
+  };
 
   // Memoized calculation to flatten all available units from all floors
   const unitOptions = useMemo(() => {
@@ -420,7 +424,7 @@ const InstallationModal = ({
                       )
                         disabled = true;
                       return (
-                        <Option key={dt} value={dt} disabled={disabled}>
+                        <Option key={dt} value={dt} disabled={isDoorTypeDisabled(dt, installedInfo, isOfficeUnit)}>
                           {dt}
                         </Option>
                       );

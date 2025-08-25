@@ -1,35 +1,7 @@
 import React, { useEffect, useState } from "react";
-import {
-  Row,
-  Col,
-  Card,
-  Statistic,
-  Progress,
-  Table,
-  Tag,
-  Typography,
-  Space,
-  List,
-  message,
-} from "antd";
-import {
-  ProjectOutlined,
-  CheckSquareOutlined,
-  UserOutlined,
-  CalendarOutlined,
-} from "@ant-design/icons";
-import {
-  BarChart,
-  Bar,
-  XAxis,
-  YAxis,
-  CartesianGrid,
-  Tooltip,
-  ResponsiveContainer,
-  PieChart,
-  Pie,
-  Cell,
-} from "recharts";
+import { Row, Col, Card, Statistic, Progress, Table, Tag, Typography, Space, List, message } from "antd";
+import { ProjectOutlined, CheckSquareOutlined, UserOutlined, CalendarOutlined } from "@ant-design/icons";
+import { BarChart, Bar, XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContainer, PieChart, Pie, Cell } from "recharts";
 import dayjs from "dayjs";
 import axios from "axios";
 import { API_ENDPOINTS } from "../utils/config";
@@ -59,11 +31,16 @@ const Dashboard = ({ user }) => {
     }
   };
 
-  // --- Normalize Status ---
+  // --- Normalize Project Status ---
   const normalizeProjectStatus = (p) => {
-    if (p.Project_Status?.description) return p.Project_Status.description;
-    if (p.Project_Status?.progress === 100) return "completed";
-    if (p.Project_Status?.progress > 0) return "in-progress";
+    if (!p.Project_Status) {
+      if ((p.Project_Percentage || 0) >= 100) return "completed";
+      if ((p.Project_Percentage || 0) > 0) return "in-progress";
+      return "planning";
+    }
+    if (p.Project_Status.description) return p.Project_Status.description;
+    if (p.Project_Status.progress >= 100) return "completed";
+    if (p.Project_Status.progress > 0) return "in-progress";
     return "planning";
   };
 
@@ -76,10 +53,10 @@ const Dashboard = ({ user }) => {
   const totalTasks = tasks.length;
   const completedTasks = tasks.filter((t) => t.Status === "Completed").length;
   const inProgressTasks = tasks.filter(
-    (t) => t.Status === "In Progress"
+    (t) => t.Status && t.Status === "In Progress"
   ).length;
   const overdueTasks = tasks.filter(
-    (t) => dayjs(t.Due_Date).isBefore(dayjs()) && t.Status !== "Completed"
+    (t) => t.Due_Date && dayjs(t.Due_Date).isBefore(dayjs()) && t.Status !== "Completed"
   ).length;
 
   // --- Chart data ---
@@ -107,7 +84,9 @@ const Dashboard = ({ user }) => {
       project.Project_Name.length > 15
         ? project.Project_Name.substring(0, 15) + "..."
         : project.Project_Name,
-    progress: project.Project_Status?.progress || 0,
+    progress: project.Project_Percentage
+      ? Math.round(project.Project_Percentage)
+      : 0,
     tasks: tasks.filter((t) => t.Project_ID === project.Project_ID).length,
   }));
 
@@ -128,13 +107,13 @@ const Dashboard = ({ user }) => {
     },
     {
       title: "Progress",
-      dataIndex: ["Project_Status", "progress"],
+      dataIndex: "Project_Percentage",
       key: "progress",
       render: (progress) => (
         <Progress
-          percent={progress}
+          percent={progress ? Math.round(progress) : 0}
           size="small"
-          status={progress === 100 ? "success" : "active"}
+          status={progress >= 100 ? "success" : "active"}
         />
       ),
     },
@@ -156,7 +135,7 @@ const Dashboard = ({ user }) => {
       title: "Units",
       dataIndex: "units",
       key: "units",
-      render: (units) => units?.toLocaleString(),
+      render: (units) => units?.toLocaleString() || 0,
     },
   ];
 
@@ -172,9 +151,9 @@ const Dashboard = ({ user }) => {
           priority === "High"
             ? "red"
             : priority === "Medium"
-            ? "orange"
-            : "blue";
-        return <Tag color={color}>{priority}</Tag>;
+              ? "orange"
+              : "blue";
+        return <Tag color={color}>{priority || "N/A"}</Tag>;
       },
     },
     {
@@ -186,16 +165,17 @@ const Dashboard = ({ user }) => {
           status === "Completed"
             ? "green"
             : status === "In Progress"
-            ? "blue"
-            : "orange";
-        return <Tag color={color}>{status}</Tag>;
+              ? "blue"
+              : "orange";
+        return <Tag color={color}>{status || "Pending"}</Tag>;
       },
     },
     {
       title: "Due Date",
       dataIndex: "Due_Date",
       key: "Due_Date",
-      render: (date) => dayjs(date).format("MMM DD, YYYY"),
+      render: (date) =>
+        date ? dayjs(date).format("MMM DD, YYYY") : "N/A",
     },
     { title: "Assigned To", dataIndex: "Assigned_To", key: "Assigned_To" },
   ];
@@ -203,7 +183,7 @@ const Dashboard = ({ user }) => {
   return (
     <div>
       <Title level={3} style={{ marginBottom: 24 }}>
-        Welcome back, {user?.name}!
+        Welcome back, {user?.name || "User"}!
       </Title>
 
       {/* Summary Stats */}
@@ -246,7 +226,9 @@ const Dashboard = ({ user }) => {
               title="Overdue Tasks"
               value={overdueTasks}
               prefix={<CalendarOutlined style={{ color: "#f5222d" }} />}
-              valueStyle={{ color: overdueTasks > 0 ? "#f5222d" : "#52c41a" }}
+              valueStyle={{
+                color: overdueTasks > 0 ? "#f5222d" : "#52c41a",
+              }}
             />
           </Card>
         </Col>
@@ -352,15 +334,18 @@ const Dashboard = ({ user }) => {
                             task.Priority === "High"
                               ? "red"
                               : task.Priority === "Medium"
-                              ? "orange"
-                              : "blue"
+                                ? "orange"
+                                : "blue"
                           }
                         >
-                          {task.Priority}
+                          {task.Priority || "N/A"}
                         </Tag>
                       </div>
                       <div style={{ fontSize: "11px", color: "#999" }}>
-                        Due: {dayjs(task.Due_Date).format("MMM DD, YYYY")}
+                        Due:{" "}
+                        {task.Due_Date
+                          ? dayjs(task.Due_Date).format("MMM DD, YYYY")
+                          : "N/A"}
                       </div>
                     </div>
                   </List.Item>

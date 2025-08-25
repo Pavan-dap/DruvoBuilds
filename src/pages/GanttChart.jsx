@@ -65,24 +65,26 @@ const GanttChart = ({ user }) => {
       const mappedProjects = apiProjects.map((p) => ({
         id: p.id,
         name: p.Project_Name,
-        startDate: p.Start_Date || dayjs().format("YYYY-MM-DD"), // fallback to today if null
+        startDate: p.Start_Date || dayjs().format("YYYY-MM-DD"),
         endDate: p.End_Date || dayjs().add(1, "month").format("YYYY-MM-DD"),
-        progress: p.Project_Status?.progress || 0,
-        status: p.Project_Status ? "in-progress" : "not-started", // or any logic you want
+        progress: Math.round((p.Progress || 0)), // decimal → %
+        status: p.Project_Status
+          ? p.Project_Status.toLowerCase()
+          : "in-progress", // default since Project_Status is null
       }));
 
       const apiTasks = res.data?.Tasks || [];
       const mappedTasks = apiTasks.map((t) => ({
-        id: t.id,
+        id: t.Task_ID,
         projectId:
           apiProjects.find((p) => p.Project_ID === t.Project_ID)?.id ||
           t.Project_ID,
         title: t.Task_Name,
         createdDate: t.Created_At,
         dueDate: t.Due_Date,
-        progress: t.Progress || t.Status === "Completed" ? 100 : 0,
-        status: t.Status || "not-started",
-        priority: t.Priority?.toLowerCase() || "medium",
+        progress: Math.round((t.Progress || 0)), // decimal → %
+        status: t.Status ? t.Status.toLowerCase() : "not-started",
+        priority: t.Priority ? t.Priority.toLowerCase() : "medium",
       }));
 
       setProjects(mappedProjects);

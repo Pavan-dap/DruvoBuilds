@@ -1,35 +1,6 @@
 import React, { useState } from "react";
-import {
-  Card,
-  Steps,
-  Form,
-  Input,
-  InputNumber,
-  Button,
-  Space,
-  Typography,
-  message,
-  Row,
-  Col,
-  Select,
-  Tabs,
-  Modal,
-  Table,
-  Divider,
-  Alert,
-  Tooltip,
-  Popconfirm,
-  DatePicker,
-} from "antd";
-import {
-  ProjectOutlined,
-  SettingOutlined,
-  CheckCircleOutlined,
-  CopyOutlined,
-  EyeOutlined,
-  DeleteOutlined,
-  PlusOutlined,
-} from "@ant-design/icons";
+import { Card, Steps, Form, Input, InputNumber, Button, Space, Typography, message, Row, Col, Select, Tabs, Modal, Table, Divider, Alert, Tooltip, Popconfirm, DatePicker, } from "antd";
+import { ProjectOutlined, SettingOutlined, CheckCircleOutlined, CopyOutlined, EyeOutlined, DeleteOutlined, PlusOutlined } from "@ant-design/icons";
 import { useNavigate } from "react-router-dom";
 import axios from "axios";
 import { API_ENDPOINTS } from "../utils/config";
@@ -258,26 +229,39 @@ const NewProject = ({ user }) => {
         if (units && units.length > 0) {
           units.forEach((unitEntry) => {
             if (unitEntry && unitEntry.count > 0) {
+              // ✅ Build doors logic
+              let doors = [];
+              if (unitTypes.includes(unitEntry.type)) {
+                // Main Door is common
+                doors.push({ type: "Main Door", count: 1 });
+
+                if (unitEntry.type === "Office") {
+                  doors.push({ type: "Office Door", count: 3 });
+                } else {
+                  doors.push({ type: "Bedroom Door", count: 3 });
+                }
+              }
+
               reviewData.push({
                 Project_ID: projectId,
                 Towers: tower,
-                Floors: `${floor}${
-                  floor === "1"
-                    ? "st"
-                    : floor === "2"
+                Floors: `${floor}${floor === "1"
+                  ? "st"
+                  : floor === "2"
                     ? "nd"
                     : floor === "3"
-                    ? "rd"
-                    : "th"
-                } Floor`,
+                      ? "rd"
+                      : "th"
+                  } Floor`,
                 Units: unitEntry.unit_names
                   ? unitEntry.unit_names
-                      .split(",")
-                      .map((u) => u.trim())
-                      .filter((u) => u !== "")
+                    .split(",")
+                    .map((u) => u.trim())
+                    .filter((u) => u !== "")
                   : [],
                 Units_Type: unitEntry.type,
                 Count: parseInt(unitEntry.count),
+                Contain_Doors: doors, // ✅ Added here
               });
             }
           });
@@ -679,15 +663,14 @@ const NewProject = ({ user }) => {
                             { length: projectData.Floors },
                             (_, floorIndex) => {
                               const floorNumber = floorIndex + 1;
-                              const floorName = `${floorNumber}${
-                                floorNumber === 1
-                                  ? "st"
-                                  : floorNumber === 2
+                              const floorName = `${floorNumber}${floorNumber === 1
+                                ? "st"
+                                : floorNumber === 2
                                   ? "nd"
                                   : floorNumber === 3
-                                  ? "rd"
-                                  : "th"
-                              } Floor`;
+                                    ? "rd"
+                                    : "th"
+                                } Floor`;
                               const currentFloorData =
                                 towerFloorData[towerName]?.[floorNumber] || [];
 

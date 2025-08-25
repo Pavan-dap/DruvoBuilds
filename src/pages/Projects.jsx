@@ -646,12 +646,12 @@ const Projects = ({ user }) => {
                                           </span>{" "}
                                           {valObj.supplied}
                                         </div>
-                                        <div>
+                                        {/* <div>
                                           <span style={{ color: "#52c41a" }}>
                                             Installed:
                                           </span>{" "}
                                           {valObj.installed}
-                                        </div>
+                                        </div> */}
                                       </div>
                                     }
                                   >
@@ -673,7 +673,7 @@ const Projects = ({ user }) => {
                                       >
                                         {valObj.supplied}
                                       </span>{" "}
-                                      /{" "}
+                                      {/* /{" "}
                                       <span
                                         style={{
                                           color: "#52c41a",
@@ -681,7 +681,7 @@ const Projects = ({ user }) => {
                                         }}
                                       >
                                         {valObj.installed}
-                                      </span>
+                                      </span> */}
                                     </Text>
                                   </Tooltip>
                                 );
